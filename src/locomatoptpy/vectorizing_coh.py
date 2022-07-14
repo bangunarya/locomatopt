@@ -1,5 +1,6 @@
 import numpy as np 
 
+
 def vector_coherence_sh(params_mat, mat):
     '''
     Function to vectorizing the coherence for spherical harmonics sensing matrix
@@ -24,24 +25,23 @@ def vector_coherence_sh(params_mat, mat):
     
     col_comb = params_mat['col_comb']
         
-    ## Combination of degree and orders
-    comb_lk = [mat.deg_order[col_comb[:,0],:],
-               mat.deg_order[col_comb[:,1],:]]
+    # Combination of degree and orders
+    comb_lk = [mat.deg_order[col_comb[:, 0], :],
+               mat.deg_order[col_comb[:, 1], :]]
         
-    ## Product of combination of degree and order associated Legendre 
-    ProductasLeg = (mat.Plk[:,col_comb[:,0]]*
-                    mat.Plk[:,col_comb[:,1]])
+    # Product of combination of degree and order associated Legendre
+    ProductasLeg = (mat.Plk[:, col_comb[:, 0]] *
+                    mat.Plk[:, col_comb[:, 1]])
         
-    ## Differences order
-    k = comb_lk[0][:,1] - comb_lk[1][:,1]
+    # Differences order
+    k = comb_lk[0][:, 1] - comb_lk[1][:, 1]
    
 
-    ## Allocation
+    # Allocation
     phi = mat.angles['phi']
-        
-               
-    mat_cos = np.cos(np.outer(phi,k))
-    mat_sin = np.sin(np.outer(phi,k))
+                   
+    mat_cos = np.cos(np.outer(phi, k))
+    mat_sin = np.sin(np.outer(phi, k))
         
     ## Product of function for all combination degree and order 
     vect_comb = np.sqrt(np.abs(np.sum(ProductasLeg*mat_cos,0))**2 +

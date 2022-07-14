@@ -1,7 +1,8 @@
 import numpy as np
 
+
 class SamplingPoints:
-    
+ 
     """ 
     Base class of sampling points on the sphere and rotation group.
     In this case we have:
@@ -47,10 +48,10 @@ class SamplingPoints:
 
     """
     
-    def __init__(self, m, polar):
+    def __init__(self, m, basis):
        
         self.m = m
-        self.polar = polar
+        self.basis = basis
         self.generate_angles()
     
     def generate_angles(self):
@@ -58,10 +59,12 @@ class SamplingPoints:
         Method to generate total sampling points
         """
         
-        self.angles = {'theta':self.theta(),
-                       'phi': self.phi(),
-                       'chi': self.chi()}
-    
+        self.angles = {'theta': self.theta(),
+                       'phi': self.phi()}
+
+        if self.basis == 'wigner' or self.basis == 'snf':
+            self.angles['chi':self.chi()]
+     
     def theta(self):
         """
         Method to generate samples on theta
@@ -80,30 +83,21 @@ class SamplingPoints:
         """
         A method to generate polarization
         """
-        ## There is a possibility dimension change, see Fibonacci
-        self.m = len(self.theta())
-        ## Generate sampling points
-        polarization = {'random' : np.random.rand(self.m)*2.0*np.pi,
-                        'determ' : np.linspace(0,2*np.pi,self.m),
-                        'snf'    : (np.arange(self.m) % 2)*(np.pi/2),
-                        'none': np.zeros_like(self.theta())
-                        }  
-        
-        return polarization[self.polar]
+        pass
 
     
 class EquiangularSampling(SamplingPoints):
     
     """ 
     Class to generate equiangular sampling points
-    """
-   
-    def theta(self):   
+    """  
+    
+    def theta(self): 
         """
         Method to generate theta        
         """
  
-        return np.linspace(0,np.pi,self.m)
+        return np.linspace(0, np.pi, self.m)
         
     def phi(self):
         
@@ -112,24 +106,29 @@ class EquiangularSampling(SamplingPoints):
         
         """
         
-        return np.linspace(0,2.0*np.pi,self.m)
+        return np.linspace(0, 2.0*np.pi, self.m)
     
-             
+    def chi(self):
+        """
+        Method to generate chi deterministic
+        """
+
+        return np.linspace(0, 2*np.pi, self.m)
+
+
 class SpiralSampling(SamplingPoints):
     
     """
     Class to generate spiral sampling points
-    
-    """
-    
-    
+    """   
+
     def theta(self):
         """
         Method to generate theta
         """
          
-        l = np.arange(self.m)
-        theta = np.arccos(-1 + (2.0*(l)/(self.m-1)))
+        l_range = np.arange(self.m)
+        theta = np.arccos(-1 + (2.0*l_range)/(self.m-1))
                 
         return theta 
     
@@ -140,11 +139,19 @@ class SpiralSampling(SamplingPoints):
         
         C = 3.6
         phi = np.zeros(self.m)
-        for l in range(1,self.m-1):
-            h = -1 + (2.0*l)/(self.m-1)
-            phi[l] = (phi[l-1] + (C/np.sqrt(self.m))*(1/np.sqrt(1-h**2.0))) % (2.0*np.pi)
+        for l_idx in range(1, self.m-1):
+            h = -1 + (2.0*l_idx)/(self.m-1)
+            phi[l_idx] = (phi[l_idx-1] + (C/np.sqrt(self.m))*(1/np.sqrt(1-h**2.0))) % (2.0*np.pi)
         
         return phi
+
+    def chi(self):
+        """
+        Method to generate chi deterministic
+        """
+
+        return np.linspace(0, 2*np.pi, self.m)
+
 
 class FibonacciSampling(SamplingPoints):
     
@@ -159,9 +166,9 @@ class FibonacciSampling(SamplingPoints):
         
         N = int(np.ceil((self.m-1)/2.0))  # Has to be an odd number of points.
         theta = np.zeros(2*N + 1)
-        gr = (1 + np.sqrt(5))/(2.0)
+
         k = 0
-        for ii in range(-N,N + 1):
+        for ii in range(-N, N + 1):
             lat = np.arcsin(2.0*ii/(2.0*N + 1))
             theta[k] = np.pi/2 - lat     
             k += 1
@@ -188,13 +195,21 @@ class FibonacciSampling(SamplingPoints):
             k += 1
         return phi
     
-    
+    def chi(self):
+        """
+        Method to generate chi
+        """
+        N = int(np.ceil((self.m-1)/2.0))  # Has to be an odd number of points.
+         
+        return np.linspace(0, 2*np.pi, 2*N+1)
+
+
 class HammersleySampling(SamplingPoints):
     """
     Class to generate Hammersley sampling points
     """
     
-    def basexpflip(self,k,b): 
+    def basexpflip(self, k, b): 
         """
         reversed base-b expansion of positive integer k
         """
@@ -208,7 +223,7 @@ class HammersleySampling(SamplingPoints):
         a = a[::-1]
         return a
     
-    def vdcorput(self,k,b):
+    def vdcorput(self, k, b):
         
         """
         Method to generate van der corput sequence
@@ -226,12 +241,11 @@ class HammersleySampling(SamplingPoints):
         Method to generate theta
         """
         
-        ## Generate Hammersley points
+        # Generate Hammersley points
         t = self.vdcorput(self.m,2)
         t = 2*t - 1
         
         return np.arccos(t)
-        
     
     def phi(self):
         
@@ -243,21 +257,26 @@ class HammersleySampling(SamplingPoints):
         phi[phi < 0] = phi[phi < 0] + 2.0*np.pi
         
         return phi
-        
+
+    def chi(self):
+        """
+        Method to generate chi deterministic
+        """
+
+        return np.linspace(0, 2*np.pi, self.m)
+
+
 class PoleRandom(SamplingPoints):
     """
     Class to generate random sampling points
     according to [3]
     """
-        
     
     def theta(self):
         
         """
         Method to generate theta
-        """
-        
-    
+        """    
         return np.random.rand(self.m)*np.pi
         
     def phi(self):
@@ -266,7 +285,19 @@ class PoleRandom(SamplingPoints):
         """
         
         return np.random.rand(self.m)*2.0*np.pi
-     
+    
+    def chi(self):
+        """
+        Method to generate chi randomly or w.r.t snf
+        """
+       
+        if self.basis == 'snf':
+            chi = (np.arange(self.m) % 2)*(np.pi/2)
+        if self.basis == 'wigner':
+            chi = np.random.rand(self.m)*2.0*np.pi,
+                   
+        return chi
+
 
 class UniformRandom(SamplingPoints):       
     """
@@ -287,3 +318,14 @@ class UniformRandom(SamplingPoints):
         """
         return np.random.rand(self.m)*2.0*np.pi
       
+    def chi(self):
+        """
+        Method to generate chi randomly or w.r.t snf
+        """
+       
+        if self.basis == 'snf':
+            chi = (np.arange(self.m) % 2)*(np.pi/2)
+        if self.basis == 'wigner':
+            chi = np.random.rand(self.m)*2.0*np.pi,
+                   
+        return chi
