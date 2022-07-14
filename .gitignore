@@ -1,0 +1,13 @@
+__pycache__
+.ipynb_checkpoints/
+.py.swp
+*.mat
+*.raw
+*.pdf
+.zip
+dask-worker-space
+*.lprof
+.vscode
+*.egg-inf
+.cfg
+results/
