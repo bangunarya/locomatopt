@@ -1,8 +1,5 @@
- 
-from itertools import combinations
-import numpy as np
-import numpy.matlib as npmat
- 
+import numpy as np 
+
 
 class Gradient:
     
@@ -29,16 +26,15 @@ class Gradient:
         self.matrix = matrix
         self.col_comb = col_comb
         self.p = p 
-        self.grad_total()
-
+       
 
 class GradSH(Gradient):
     
     """
     Class to generate gradient of product combination columns of 
     spherical harmonics matrix. 
-    Since we want to optimize the coherence of the matrix (inner product of difference columns), we have
-    to calculate the gradient w.r.t theta, phi
+    Since we want to optimize the coherence of the matrix (inner product of difference columns), 
+    we have to calculate the gradient w.r.t theta, phi
     
     
     Attributes
@@ -59,127 +55,120 @@ class GradSH(Gradient):
         to theta, phi, chi
         
         """
-        self.deriv_norm()
-        ## Calculate derivative of theta
-        self.deriv_theta()
+        k, ProductasLeg = self.comb_pos()
+        Qnorm, Qnorm1, mat_cos, mat_sin = self.deriv_norm(k, ProductasLeg)
+
+        # Calculate derivative of theta
+        gr_theta_pnorm, gr_theta = self.deriv_theta(Qnorm1, Qnorm, ProductasLeg,
+                                                    mat_cos, mat_sin)
         
-        ## Calculate derivative of phi
-        self.deriv_phi()
+        # Calculate derivative of phi
+        gr_phi_pnorm, gr_phi = self.deriv_phi(k, Qnorm, Qnorm1, ProductasLeg,
+                                              mat_cos, mat_sin)
         
-    
+        return {'theta': gr_theta_pnorm,
+                'phi': gr_phi_pnorm,
+                'theta_func': gr_theta,
+                'phi_func': gr_phi}
+
     def comb_pos(self):
         """
         Method to generate combination of degree and orders
         
         """
          
+        # Combination of degree and orders
+        comb_lk = [self.matrix.deg_order[self.col_comb[:, 0], :],
+                   self.matrix.deg_order[self.col_comb[:, 1], :]]
         
-        ## Combination of degree and orders
-        comb_lk = [self.matrix.deg_order[self.col_comb[:,0],:],
-                   self.matrix.deg_order[self.col_comb[:,1],:]]
+        # Product of combination of degree and order associated Legendre
+        ProductasLeg = (self.matrix.Plk[:, self.col_comb[:, 0]] *
+                        self.matrix.Plk[:, self.col_comb[:, 1]])
         
-        ## Product of combination of degree and order associated Legendre 
-        self.ProductasLeg = (self.matrix.Plk[:,self.col_comb[:,0]]*
-                             self.matrix.Plk[:,self.col_comb[:,1]])
-        
-        ## Differences order
-        self.k = comb_lk[0][:,1] - comb_lk[1][:,1]
-    
-    def deriv_norm(self):
+        # Differences order
+        k = comb_lk[0][:, 1] - comb_lk[1][:, 1]
+        return k, ProductasLeg
+
+    def deriv_norm(self, k, ProductasLeg):
         
         """
         Method to calculate derivative of norm since we 
         approximate infinity norm for p-norm for high p
         """
         
-        self.comb_pos()
-        
-        ## Allocation
+        # Allocation
        
-        
         phi = self.matrix.angles['phi']
         
-        ## q-norm, q = 8
+        # q-norm, q = 8
         q = self.p
-        
          
-        ## Derivative of norm
+        # Derivative of norm
         
+        mat_cos = np.cos(np.outer(phi, k))
+        mat_sin = np.sin(np.outer(phi, k))
         
-        self.mat_cos = np.cos(np.outer(phi,self.k))
-        self.mat_sin = np.sin(np.outer(phi,self.k))
+        abs_product = np.sqrt(np.abs(np.sum(ProductasLeg*mat_cos, 0))**2 +
+                              np.abs(np.sum(ProductasLeg*mat_sin, 0))**2)
+
+        Qnorm = (q/2.0)*abs_product**(q-2)
     
-        self.Qnorm = (q/2.0)*np.sqrt(np.abs(np.sum(self.ProductasLeg*self.mat_cos,0))**2 +
-                                     np.abs(np.sum(self.ProductasLeg*self.mat_sin,0))**2)**(q-2)
-    
-        self.Qnorm1 = (1/q)*np.sum(np.sqrt(np.abs(np.sum(self.ProductasLeg*self.mat_cos,0))**2 + 
-                                           np.abs(np.sum(self.ProductasLeg*self.mat_sin,0))**2)**q)**((1/q)-1)
- 
-         
+        Qnorm1 = (1/q)*(np.sum(abs_product**q)**((1/q)-1))
         
-    def deriv_theta(self):
+        return Qnorm, Qnorm1, mat_cos, mat_sin
+
+    def deriv_theta(self, Qnorm1, Qnorm, ProductasLeg,
+                    mat_cos, mat_sin):
         
         """
         Method to derive coherence w.r.t theta
         """
         
-        
-          
-        ## Direct calculation of derivative with respect to theta (u.v = u'v + uv')
-       
+        # Direct calculation of derivative with respect to theta (u.v = u'v + uv')
+        dPlktotal = (self.matrix.Plk[:, self.col_comb[:, 0]] *
+                     self.matrix.dPlk[:, self.col_comb[:, 1]] +
+                     self.matrix.dPlk[:, self.col_comb[:, 0]] * 
+                     self.matrix.Plk[:, self.col_comb[:, 1]])
 
-        dPlktotal = (self.matrix.Plk[:,self.col_comb[:,0]]*self.matrix.dPlk[:,self.col_comb[:,1]] +
-                     self.matrix.dPlk[:,self.col_comb[:,0]]*self.matrix.Plk[:,self.col_comb[:,1]])
+        # Matrix-based derivative w.r.t theta 
 
-         
-        ## Matrix-based derivative w.r.t theta
-         
-        gr_temp_theta1 = (2.0*npmat.repmat(np.sum(self.ProductasLeg*self.mat_cos,0),self.matrix.m,1)*
-                          (dPlktotal*self.mat_cos))
+        gr_theta = (2.0*np.sum(ProductasLeg*mat_cos, 0)[np.newaxis, :] *
+                    dPlktotal*mat_cos +
+                    2.0*np.sum(ProductasLeg*mat_sin, 0)[np.newaxis, :] *
+                    dPlktotal*mat_sin)
         
-        gr_temp_theta2 = (2.0*npmat.repmat(np.sum(self.ProductasLeg*self.mat_sin,0),self.matrix.m,1)*
-                          (dPlktotal*self.mat_sin))
+        # Gradient theta
         
-        gr_temp_theta = gr_temp_theta1 + gr_temp_theta2
+        gr_theta_pnorm = Qnorm1*np.sum(Qnorm[np.newaxis, :] *
+                                       gr_theta, 1)
         
-        ## Gradient theta
-       
-        self.gr_theta = self.Qnorm1*np.sum(npmat.repmat(self.Qnorm, self.matrix.m,1)*gr_temp_theta, 1)
-        self.gr_theta_total = gr_temp_theta
-    def deriv_phi(self):
+        return gr_theta_pnorm, gr_theta
+
+    def deriv_phi(self, k, Qnorm, Qnorm1, ProductasLeg, mat_cos, mat_sin):
         """
         Method to derive coherence w.r.t theta
         """
         
-         
-      
-        ## Matrix-based derivative w.r.t phi
-     
-        grad_temp1 = 2.0*npmat.repmat(np.sum(self.ProductasLeg*self.mat_cos,0), self.matrix.m,1)
-        grad_temp2 = self.ProductasLeg*self.mat_sin*npmat.repmat(-self.k, self.matrix.m,1)
-        grad1 = grad_temp1*grad_temp2
-
-        grad_temp3 = 2.0*npmat.repmat(np.sum(self.ProductasLeg*self.mat_sin,0), self.matrix.m,1)
-        grad_temp4 = self.ProductasLeg*self.mat_cos*npmat.repmat(self.k, self.matrix.m,1)
-        grad2 = grad_temp3*grad_temp4
-        grad_temp = grad1 + grad2
-            
-        ## Gradient phi
-        self.gr_phi = self.Qnorm1*np.sum(npmat.repmat(self.Qnorm, self.matrix.m,1)*grad_temp,1)
-        self.gr_phi_total = grad_temp
+        # Matrix-based derivative w.r.t phi 
+        
+        gr_phi = ((2.0*np.sum(ProductasLeg*mat_cos, 0)[np.newaxis, :] *
+                   ProductasLeg*mat_sin*(-k[np.newaxis, :])) + 
+                  (2.0*np.sum(ProductasLeg*mat_sin, 0)[np.newaxis, :] * 
+                   ProductasLeg*mat_cos*(k[np.newaxis, :])))
+                  
+        # Gradient phi
+        gr_phi_pnorm = Qnorm1*np.sum(Qnorm[np.newaxis, :]*gr_phi, 1)
   
+        return gr_phi_pnorm, gr_phi
+ 
 
-      
-    
 class GradWigner(Gradient):
-    
-    
     
     """
     Class to generate derivative of product Wigner D-functions
     with respect to theta,phi, and chi.
-    Since we want to optimize the coherence of the matrix (inner product of difference columns), we have
-    to calculate the gradient w.r.t theta, phi and chi
+    Since we want to optimize the coherence of the matrix (inner product of difference columns),
+    we have to calculate the gradient w.r.t theta, phi and chi
     
     Attributes
     -------
@@ -189,10 +178,8 @@ class GradWigner(Gradient):
         with respect to angles, i.e., theta, phi, chi 
     
     
-    
     """
      
-        
     def comb_pos(self):
         
         """
@@ -200,75 +187,71 @@ class GradWigner(Gradient):
         
         """
         
+        # Combination for coherence
+        comb_lkn = [self.matrix.deg_order[self.col_comb[:, 0], :],
+                    self.matrix.deg_order[self.col_comb[:, 1], :]]
         
-         
-        ### Combination for coherence
-        comb_lkn = [self.matrix.deg_order[self.col_comb[:,0],:], self.matrix.deg_order[self.col_comb[:,1],:]]
+        k = comb_lkn[0][:, 1] - comb_lkn[1][:, 1]
+        n = comb_lkn[0][:, 2] - comb_lkn[1][:, 2]
+
+        # Product of combination degree and orders Wigner d-functions
+        ProductWignerd = (self.matrix.wignerd[:, self.col_comb[:, 0]] *
+                          self.matrix.wignerd[:, self.col_comb[:, 1]])
         
-        self.k = comb_lkn[0][:,1] - comb_lkn[1][:,1]
-        self.n = comb_lkn[0][:,2] - comb_lkn[1][:,2]
+        return k, n, ProductWignerd
 
-        ## Product of combination degree and orders Wigner d-functions
-        self.ProductWignerd = (self.matrix.wignerd[:,self.col_comb[:,0]]*
-                               self.matrix.wignerd[:,self.col_comb[:,1]])
-
-    
-    def deriv_norm(self):
+    def deriv_norm(self, k, n, ProductWignerd):
         
         """
         Method to calculate derivative of norm since we 
         approximate infinity norm for p-norm for high p
         
         """
-        
-        self.comb_pos()
-    
-        ## Allocation
-        
+         
+        # Allocation
         phi = self.matrix.angles['phi']
         chi = self.matrix.angles['chi']
-         
-
-        ## Derivative of q norm
+        
+        # Derivative of q norm
         q = self.p
 
-        self.mat_cos = np.cos(np.outer(phi,self.k) + np.outer(chi,self.n))
-        self.mat_sin = np.sin(np.outer(phi,self.k) + np.outer(chi,self.n))
+        mat_cos = np.cos(np.outer(phi, k) + np.outer(chi, n))
+        mat_sin = np.sin(np.outer(phi, k) + np.outer(chi, n))
 
-        self.Qnorm = (q/2.0)*np.sqrt(np.abs(np.sum(self.ProductWignerd*self.mat_cos,0))**2 +
-                                     np.abs(np.sum(self.ProductWignerd*self.mat_sin,0))**2)**(q-2)
-        self.Qnorm1 = (1/q)*np.sum(np.sqrt(np.abs(np.sum(self.ProductWignerd*self.mat_cos,0))**2 +
-                                           np.abs(np.sum(self.ProductWignerd*self.mat_sin,0))**2)**q)**((1/q)-1)
- 
+        abs_product = np.sqrt(np.abs(np.sum(ProductWignerd*mat_cos, 0))**2 +
+                              np.abs(np.sum(ProductWignerd*mat_sin, 0))**2)
 
-    def deriv_theta(self):
+        Qnorm = (q/2.0)*abs_product**(q-2)
+        Qnorm1 = (1/q)*(np.sum(abs_product**q)**((1/q)-1))
+
+        return Qnorm, Qnorm1, mat_cos, mat_sin
+
+    def deriv_theta(self, Qnorm1, Qnorm, ProductWignerd,
+                    mat_cos, mat_sin):
         
         """
         Method to calculate gradient with respect 
         to theta
         
         """
+    
+        # Direct derivative of the product with respect to theta
+        dWignerd = (self.matrix.wignerd[:, self.col_comb[:, 0]] *
+                    self.matrix.dwignerd[:, self.col_comb[:, 1]] +
+                    self.matrix.dwignerd[:, self.col_comb[:, 0]] *
+                    self.matrix.wignerd[:, self.col_comb[:, 1]])
         
-        
-        
-        
-        ## Direct derivative of the product with respect to theta
-        dWignerd = (self.matrix.wignerd[:,self.col_comb[:,0]]*self.matrix.dwignerd[:,self.col_comb[:,1]] + 
-                    self.matrix.dwignerd[:,self.col_comb[:,0]]*self.matrix.wignerd[:,self.col_comb[:,1]])
-       
-        
-        gr_temp_theta1 = (2.0*npmat.repmat(np.sum(self.ProductWignerd*self.mat_cos,0), self.matrix.m,1)*
-                          dWignerd*self.mat_cos)
-        
-        gr_temp_theta2 = (2.0*npmat.repmat(np.sum(self.ProductWignerd*self.mat_sin,0), self.matrix.m,1)*
-                          dWignerd*self.mat_sin)
-        
-        gr_temp_theta = gr_temp_theta1 + gr_temp_theta2
-        
-        self.gr_theta = self.Qnorm1*np.sum(npmat.repmat(self.Qnorm, self.matrix.m,1)*gr_temp_theta, axis = 1)
-        self.gr_theta_total = gr_temp_theta
-        
-    def deriv_phi(self):   
+        gr_theta = (2.0*np.sum(ProductWignerd*mat_cos, 0)[np.newaxis, :] *
+                    dWignerd*mat_cos + 
+                    2.0*np.sum(ProductWignerd*mat_sin, 0)[np.newaxis, :] *
+                    dWignerd*mat_sin)
+
+        gr_theta_pnorm = Qnorm1*np.sum(Qnorm[np.newaxis, :] *
+                                       gr_theta, 1)
+
+        return gr_theta_pnorm, gr_theta
+
+    def deriv_phi(self, k, Qnorm, Qnorm1, ProductWignerd, mat_cos, mat_sin):   
         
         """
         Method to calculate gradient with respect 
@@ -276,45 +259,34 @@ class GradWigner(Gradient):
         
         """
         
+        # Matrix-based phi
         
+        gr_phi = (2.0*np.sum(ProductWignerd*mat_cos, 0)[np.newaxis, :] * 
+                  ProductWignerd*mat_sin*(-k[np.newaxis, :]) + 
+                  2.0*np.sum(ProductWignerd*mat_sin, 0)[np.newaxis, :] *
+                  ProductWignerd*mat_cos*(k[np.newaxis, :]))
         
-        ## Matrix-based phi
-        grad_temp1_phi = 2.0*npmat.repmat(np.sum(self.ProductWignerd*self.mat_cos,0),self.matrix.m,1)
-        grad_temp2_phi = (self.ProductWignerd*self.mat_sin)*npmat.repmat(-self.k, self.matrix.m,1)
-        grad1_phi = (grad_temp1_phi*grad_temp2_phi)
-
-        grad_temp3_phi = 2.0*npmat.repmat(np.sum(self.ProductWignerd*self.mat_sin,0),self.matrix.m,1)
-        grad_temp4_phi = (self.ProductWignerd*self.mat_cos)*npmat.repmat(self.k,self.matrix.m,1)
-        grad2_phi = (grad_temp3_phi*grad_temp4_phi)
+        gr_phi_pnorm = Qnorm1*np.sum(Qnorm[np.newaxis, :]*gr_phi, 1)
         
-        grad_temp_phi = grad1_phi + grad2_phi
+        return gr_phi_pnorm, gr_phi
         
-        self.gr_phi = self.Qnorm1*np.sum((npmat.repmat(self.Qnorm, self.matrix.m,1)*grad_temp_phi), 1)
-        self.gr_phi_total = grad_temp_phi
-        
-    def deriv_chi(self):
+    def deriv_chi(self, n, Qnorm, Qnorm1, ProductWignerd, mat_cos, mat_sin):
         
         """
         Method to calculate gradient with respect 
         to chi
         
         """
-        
        
+        # Matrix-based chi
+        gr_chi = (2.0*np.sum(ProductWignerd*mat_cos, 0)[np.newaxis, :] *
+                  ProductWignerd*mat_sin*(-n[np.newaxis, :]) +
+                  2.0*np.sum(ProductWignerd*mat_sin, 0)[np.newaxis, :] *     
+                  ProductWignerd*mat_cos*(n[np.newaxis, :]))
+       
+        gr_chi_pnorm = Qnorm1*np.sum(Qnorm[np.newaxis, :]*gr_chi, 1)
         
-        ## Matrix-based chi
-        grad_temp1_chi = 2.0*npmat.repmat(np.sum(self.ProductWignerd*self.mat_cos,0),self.matrix.m,1)
-        grad_temp2_chi = (self.ProductWignerd*self.mat_sin)*npmat.repmat(-self.n, self.matrix.m,1)
-        grad1_chi = (grad_temp1_chi*grad_temp2_chi)
-
-        grad_temp3_chi = 2.0*npmat.repmat(np.sum(self.ProductWignerd*self.mat_sin,0),self.matrix.m,1)
-        grad_temp4_chi = (self.ProductWignerd*self.mat_cos)*npmat.repmat(self.n, self.matrix.m,1)
-        grad2_chi = (grad_temp3_chi*grad_temp4_chi)
-        grad_temp_chi = grad1_chi + grad2_chi
-
-        
-        self.gr_chi = self.Qnorm1*np.sum((npmat.repmat(self.Qnorm,self.matrix.m,1)*grad_temp_chi), 1)
-        self.gr_chi_total = grad_temp_chi
+        return gr_chi_pnorm, gr_chi
         
     def grad_total(self):
         
@@ -323,15 +295,29 @@ class GradWigner(Gradient):
         to theta, phi, chi
         
         """
-        self.deriv_norm()
-        ## Calculate derivative of theta
-        self.deriv_theta()
+
+       
+        k, n, ProductWignerd = self.comb_pos()
+
+        Qnorm, Qnorm1, mat_cos, mat_sin = self.deriv_norm(k, n, ProductWignerd)
+        # Calculate derivative of theta
+        gr_theta_pnorm, gr_theta = self.deriv_theta(Qnorm1, Qnorm, ProductWignerd,
+                                                    mat_cos, mat_sin)
+    
+        # Calculate derivative of phi
+        gr_phi_pnorm, gr_phi = self.deriv_phi(k, Qnorm, Qnorm1, ProductWignerd, 
+                                              mat_cos, mat_sin)
         
-        ## Calculate derivative of phi
-        self.deriv_phi()
-        
-        ## Calculate derivative of chi
-        self.deriv_chi()
+        # Calculate derivative of chi
+        gr_chi_pnorm, gr_chi = self.deriv_chi(n, Qnorm, Qnorm1, ProductWignerd, 
+                                              mat_cos, mat_sin)
+
+        return {'theta': gr_theta_pnorm,
+                'phi': gr_phi_pnorm,
+                'chi': gr_chi_pnorm,
+                'theta_func': gr_theta,
+                'phi_func': gr_phi,
+                'chi_func': gr_chi}
 
 class GradWignerSNF(Gradient):
  
@@ -382,11 +368,12 @@ class GradWignerSNF(Gradient):
         ## Derivative of q norm
         q = self.p
 
-        self.Qnorm = (q/2.0)*np.abs(ProductCohTot)**(q-2) # np.abs(np.sum(ProductCoh,0))
+        Qnorm = (q/2.0)*np.abs(ProductCohTot)**(q-2) # np.abs(np.sum(ProductCoh,0))
 
 
-        self.Qnorm1 = (1/q)*np.sum(np.abs(ProductCohTot)**q)**((1/q)-1)
+        Qnorm1 = (1/q)*np.sum(np.abs(ProductCohTot)**q)**((1/q)-1)
         
+        return Qnorm, Qnorm1
     
     def comb_orders(self):
         
@@ -408,20 +395,20 @@ class GradWignerSNF(Gradient):
         s2 = np.sin(np.outer(self.matrix.angles['phi'],k) + 2*self.matrix.angles['chi'][:,np.newaxis])
         s3 = np.sin(np.outer(self.matrix.angles['phi'],k) - 2*self.matrix.angles['chi'][:,np.newaxis])
         
-        self.comb_sine_cos = {'c1': c1, 'c2': c2,'c3': c3,
-                              's1': s1, 's2': s2,'s3': s3}
+        comb_sine_cos = {'c1': c1, 'c2': c2,'c3': c3,
+                         's1': s1, 's2': s2,'s3': s3}
 
         ## Derivatives c1,c2,c3 and s1,s2,s3 (w.r.t phi)
-        d_c1 = npmat.repmat(-k,self.matrix.m,1)*s1
-        d_c2 = npmat.repmat(-k,self.matrix.m,1)*s2
-        d_c3 = npmat.repmat(-k,self.matrix.m,1)*s3
+        d_c1 = -k[np.newaxis, :]*s1
+        d_c2 = -k[np.newaxis, :]*s2
+        d_c3 = -k[np.newaxis, :]*s3
 
-        d_s1 = npmat.repmat(k,self.matrix.m,1)*c1
-        d_s2 = npmat.repmat(k,self.matrix.m,1)*c2
-        d_s3 = npmat.repmat(k,self.matrix.m,1)*c3
+        d_s1 = k[np.newaxis, :]*c1
+        d_s2 = k[np.newaxis, :]*c2
+        d_s3 = k[np.newaxis, :]*c3
         
-        self.deriv_sc_phi = {'d_c1': d_c1,'d_c2': d_c2,'d_c3': d_c3,
-                             'd_s1': d_s1,'d_s2': d_s2,'d_s3': d_s3}
+        deriv_sc_phi = {'d_c1': d_c1,'d_c2': d_c2,'d_c3': d_c3,
+                        'd_s1': d_s1,'d_s2': d_s2,'d_s3': d_s3}
         
         ## Derivatives c1,c2,c3 and s1,s2,S3 (w.r.t chi)
         
@@ -430,17 +417,19 @@ class GradWignerSNF(Gradient):
         d_s2_chi = c2*2
         d_s3_chi = -c3*2
         
-        self.deriv_sc_chi = {'d_c2_chi': d_c2_chi, 'd_c3_chi': d_c3_chi,
-                             'd_s2_chi': d_s2_chi, 'd_s3_chi': d_s3_chi}
+        deriv_sc_chi = {'d_c2_chi': d_c2_chi, 'd_c3_chi': d_c3_chi,
+                        'd_s2_chi': d_s2_chi, 'd_s3_chi': d_s3_chi}
 
-    def all_comb_matrix(self):
+        return deriv_sc_phi, deriv_sc_chi, comb_sine_cos
+
+    def all_comb_matrix(self, comb_sine_cos, deriv_sc_chi, deriv_sc_phi):
         
         
         ###################################################################################
         ## Case 3 (All possible_combination of two matrices)
         #################################################################################
          
-        self.comb_orders()
+        #self.comb_orders()
         
         ## Combination product Wigner small d
         d1 = self.matrix.dmm_plus1[:,self.col_comb[:,0]]*self.matrix.dmm_plus2[:,self.col_comb[:,1]]
@@ -463,27 +452,27 @@ class GradWignerSNF(Gradient):
               
         ## Allocation
         
-        c1 = self.comb_sine_cos['c1']
-        c2 = self.comb_sine_cos['c2']
-        c3 = self.comb_sine_cos['c3']
+        c1 = comb_sine_cos['c1']
+        c2 = comb_sine_cos['c2']
+        c3 = comb_sine_cos['c3']
              
-        s1 = self.comb_sine_cos['s1']
-        s2 = self.comb_sine_cos['s2']
-        s3 = self.comb_sine_cos['s3']
+        s1 = comb_sine_cos['s1']
+        s2 = comb_sine_cos['s2']
+        s3 = comb_sine_cos['s3']
         
-        d_c1 = self.deriv_sc_phi['d_c1']
-        d_c2 = self.deriv_sc_phi['d_c2']
-        d_c3 = self.deriv_sc_phi['d_c3']
+        d_c1 = deriv_sc_phi['d_c1']
+        d_c2 = deriv_sc_phi['d_c2']
+        d_c3 = deriv_sc_phi['d_c3']
         
-        d_s1 = self.deriv_sc_phi['d_s1']
-        d_s2 = self.deriv_sc_phi['d_s2']
-        d_s3 = self.deriv_sc_phi['d_s3']
+        d_s1 = deriv_sc_phi['d_s1']
+        d_s2 = deriv_sc_phi['d_s2']
+        d_s3 = deriv_sc_phi['d_s3']
         
         
-        d_c2_chi =  self.deriv_sc_chi['d_c2_chi']
-        d_c3_chi =  self.deriv_sc_chi['d_c3_chi']
-        d_s2_chi =  self.deriv_sc_chi['d_s2_chi']
-        d_s3_chi =  self.deriv_sc_chi['d_s3_chi']
+        d_c2_chi =  deriv_sc_chi['d_c2_chi']
+        d_c3_chi =  deriv_sc_chi['d_c3_chi']
+        d_s2_chi =  deriv_sc_chi['d_s2_chi']
+        d_s3_chi =  deriv_sc_chi['d_s3_chi']
         
         
                         
@@ -517,11 +506,13 @@ class GradWignerSNF(Gradient):
             
             
         ##Total derivation 
-        self.gr_theta_case3 = case3_real*d_case3_real_theta + case3_imag*d_case3_imag_theta
-        self.gr_phi_case3 = case3_real*d_case3_real_phi + case3_imag*d_case3_imag_phi
-        self.gr_chi_case3 = case3_real*d_case3_real_chi + case3_imag*d_case3_imag_chi
+        gr_theta_case3 = case3_real*d_case3_real_theta + case3_imag*d_case3_imag_theta
+        gr_phi_case3 = case3_real*d_case3_real_phi + case3_imag*d_case3_imag_phi
+        gr_chi_case3 = case3_real*d_case3_real_chi + case3_imag*d_case3_imag_chi
 
-    def comb_neg(self):
+        return gr_theta_case3, gr_phi_case3, gr_chi_case3
+
+    def comb_neg(self, comb_sine_cos, deriv_sc_phi, deriv_sc_chi):
         #############################################################################
         ## Case2 (coherence inside second matrix, negative and negative)
         ############################################################################
@@ -530,32 +521,32 @@ class GradWignerSNF(Gradient):
         ## col_comb3, idx_12, c1,c2,c3, d_c1,d_c2,d_c3, d_c2_chi, d_c3_chi
         ## s1,s2,s3
      
-        self.comb_orders()
+        #self.comb_orders()
         
         
         ## Allocation
         
-        c1 = self.comb_sine_cos['c1']
-        c2 = self.comb_sine_cos['c2']
-        c3 = self.comb_sine_cos['c3']
+        c1 = comb_sine_cos['c1']
+        c2 = comb_sine_cos['c2']
+        c3 = comb_sine_cos['c3']
              
-        s1 = self.comb_sine_cos['s1']
-        s2 = self.comb_sine_cos['s2']
-        s3 = self.comb_sine_cos['s3']
+        s1 = comb_sine_cos['s1']
+        s2 = comb_sine_cos['s2']
+        s3 = comb_sine_cos['s3']
         
-        d_c1 = self.deriv_sc_phi['d_c1']
-        d_c2 = self.deriv_sc_phi['d_c2']
-        d_c3 = self.deriv_sc_phi['d_c3']
+        d_c1 = deriv_sc_phi['d_c1']
+        d_c2 = deriv_sc_phi['d_c2']
+        d_c3 = deriv_sc_phi['d_c3']
         
-        d_s1 = self.deriv_sc_phi['d_s1']
-        d_s2 = self.deriv_sc_phi['d_s2']
-        d_s3 = self.deriv_sc_phi['d_s3']
+        d_s1 = deriv_sc_phi['d_s1']
+        d_s2 = deriv_sc_phi['d_s2']
+        d_s3 = deriv_sc_phi['d_s3']
         
         
-        d_c2_chi =  self.deriv_sc_chi['d_c2_chi']
-        d_c3_chi =  self.deriv_sc_chi['d_c3_chi']
-        d_s2_chi =  self.deriv_sc_chi['d_s2_chi']
-        d_s3_chi =  self.deriv_sc_chi['d_s3_chi']
+        d_c2_chi = deriv_sc_chi['d_c2_chi']
+        d_c3_chi = deriv_sc_chi['d_c3_chi']
+        d_s2_chi = deriv_sc_chi['d_s2_chi']
+        d_s3_chi = deriv_sc_chi['d_s3_chi']
         
         
         ## Combination product Wigner small d
@@ -622,44 +613,46 @@ class GradWignerSNF(Gradient):
 
 
         ##Total derivation
-        self.gr_theta_case2 = case2_real*d_case2_real_theta + case2_imag*d_case2_imag_theta
-        self.gr_phi_case2   = case2_real*d_case2_real_phi + case2_imag*d_case2_imag_phi
-        self.gr_chi_case2   = case2_real*d_case2_real_chi + case2_imag*d_case2_imag_chi 
-        
-    def comb_pos(self):
+        gr_theta_case2 = case2_real*d_case2_real_theta + case2_imag*d_case2_imag_theta
+        gr_phi_case2   = case2_real*d_case2_real_phi + case2_imag*d_case2_imag_phi
+        gr_chi_case2   = case2_real*d_case2_real_chi + case2_imag*d_case2_imag_chi 
 
-        ###############################################################################
-        ## Case 1 (Coherence between basis 1, positive and positive)
+        return gr_theta_case2, gr_phi_case2, gr_chi_case2
+
+    def comb_pos(self, comb_sine_cos, deriv_sc_phi, deriv_sc_chi):
+
+        ##############################################################################
+        # Case 1 (Coherence between basis 1, positive and positive)
         ###############################################################################
 
-        self.comb_orders()
+        #self.comb_orders()
         ## Use : dmm_plus1, dmm_min1. d_dmm_plus1, d_dmm_min1
         ## col_comb3, idx_12, c1,c2,c3, d_c1,d_c2,d_c3, d_c2_chi, d_c3_chi
         ## s1,s2,s3
         
         ## Allocation
         
-        c1 = self.comb_sine_cos['c1']
-        c2 = self.comb_sine_cos['c2']
-        c3 = self.comb_sine_cos['c3']
+        c1 = comb_sine_cos['c1']
+        c2 = comb_sine_cos['c2']
+        c3 = comb_sine_cos['c3']
              
-        s1 = self.comb_sine_cos['s1']
-        s2 = self.comb_sine_cos['s2']
-        s3 = self.comb_sine_cos['s3']
+        s1 = comb_sine_cos['s1']
+        s2 = comb_sine_cos['s2']
+        s3 = comb_sine_cos['s3']
         
-        d_c1 = self.deriv_sc_phi['d_c1']
-        d_c2 = self.deriv_sc_phi['d_c2']
-        d_c3 = self.deriv_sc_phi['d_c3']
+        d_c1 = deriv_sc_phi['d_c1']
+        d_c2 = deriv_sc_phi['d_c2']
+        d_c3 = deriv_sc_phi['d_c3']
         
-        d_s1 = self.deriv_sc_phi['d_s1']
-        d_s2 = self.deriv_sc_phi['d_s2']
-        d_s3 = self.deriv_sc_phi['d_s3']
+        d_s1 = deriv_sc_phi['d_s1']
+        d_s2 = deriv_sc_phi['d_s2']
+        d_s3 = deriv_sc_phi['d_s3']
         
         
-        d_c2_chi =  self.deriv_sc_chi['d_c2_chi']
-        d_c3_chi =  self.deriv_sc_chi['d_c3_chi']
-        d_s2_chi =  self.deriv_sc_chi['d_s2_chi']
-        d_s3_chi =  self.deriv_sc_chi['d_s3_chi']
+        d_c2_chi =  deriv_sc_chi['d_c2_chi']
+        d_c3_chi =  deriv_sc_chi['d_c3_chi']
+        d_s2_chi =  deriv_sc_chi['d_s2_chi']
+        d_s3_chi =  deriv_sc_chi['d_s3_chi']
      
         
         ## Combination product Wigner small d
@@ -734,38 +727,57 @@ class GradWignerSNF(Gradient):
                              d_s3_chi[:,self.idx_12]*d3)
             
         ##Total derivation(DONT FORGET NORMALIZATION)
-        self.gr_theta_case1 = case1_real*d_case1_real_theta + case1_imag*d_case1_imag_theta
-        self.gr_phi_case1   = case1_real*d_case1_real_phi + case1_imag*d_case1_imag_phi
-        self.gr_chi_case1   = case1_real*d_case1_real_chi + case1_imag*d_case1_imag_chi
+        gr_theta_case1 = case1_real*d_case1_real_theta + case1_imag*d_case1_imag_theta
+        gr_phi_case1   = case1_real*d_case1_real_phi + case1_imag*d_case1_imag_phi
+        gr_chi_case1   = case1_real*d_case1_real_chi + case1_imag*d_case1_imag_chi
+
+        return gr_theta_case1, gr_phi_case1, gr_chi_case1
+
 
     def grad_all(self):
-        self.all_comb_matrix()
-        self.norm_deriv()
-        self.comb_pos()
-        self.comb_neg()
+
+        deriv_sc_phi, deriv_sc_chi, comb_sine_cos = self.comb_orders()
+
+        gr_theta_case3, gr_phi_case3, gr_chi_case3 = self.all_comb_matrix(comb_sine_cos, deriv_sc_chi, deriv_sc_phi)
         
+        gr_theta_case2, gr_phi_case2, gr_chi_case2 = self.comb_neg(comb_sine_cos, deriv_sc_phi, deriv_sc_chi)
+        
+        gr_theta_case1, gr_phi_case1, gr_chi_case1 = self.comb_pos(comb_sine_cos, deriv_sc_phi, deriv_sc_chi)
+        
+         
         ## Concatenate total
-        self.gr_theta_total = (np.concatenate((self.gr_theta_case1,
-                                               self.gr_theta_case3,
-                                               self.gr_theta_case2), axis = 1))
+        gr_theta = (np.concatenate((gr_theta_case1,
+                                          gr_theta_case3,
+                                          gr_theta_case2), axis = 1))
               
-        self.gr_phi_total = (np.concatenate((self.gr_phi_case1, 
-                                             self.gr_phi_case3, 
-                                             self.gr_phi_case2), axis = 1))
+        gr_phi = (np.concatenate((gr_phi_case1, 
+                                        gr_phi_case3, 
+                                        gr_phi_case2), axis = 1))
  
-        self.gr_chi_total = (np.concatenate((self.gr_chi_case1,
-                                             self.gr_chi_case3,
-                                             self.gr_chi_case2), axis = 1))
+        gr_chi = (np.concatenate((gr_chi_case1,
+                                        gr_chi_case3,
+                                        gr_chi_case2), axis = 1))
+        
+        return gr_theta, gr_phi, gr_chi
            
     def grad_total(self):
        
-    
-        self.grad_all()                                     
+        Qnorm, Qnorm1 = self.norm_deriv()                                
+        
+        gr_theta, gr_phi, gr_chi = self.grad_all()
         
         ## Qnorm, Qnorm1, gr_theta_total, gr_phi_total
-        self.gr_theta = self.Qnorm1*np.sum(npmat.repmat(self.Qnorm,self.matrix.m,1)*self.gr_theta_total, 1)
-        self.gr_phi   = self.Qnorm1*np.sum(npmat.repmat(self.Qnorm,self.matrix.m,1)*self.gr_phi_total, 1)
-        self.gr_chi   = self.Qnorm1*np.sum(npmat.repmat(self.Qnorm,self.matrix.m,1)*self.gr_chi_total, 1)
+        gr_theta_pnorm = Qnorm1*np.sum(Qnorm[np.newaxis, :]*gr_theta, 1)
+        gr_phi_pnorm   = Qnorm1*np.sum(Qnorm[np.newaxis, :]*gr_phi, 1)
+        gr_chi_pnorm   = Qnorm1*np.sum(Qnorm[np.newaxis, :]*gr_chi, 1)
+
+
+        return {'theta': gr_theta_pnorm,
+                'phi': gr_phi_pnorm,
+                'chi': gr_chi_pnorm,
+                'theta_func': gr_theta,
+                'phi_func': gr_phi,
+                'chi_func': gr_chi}
           
    
 

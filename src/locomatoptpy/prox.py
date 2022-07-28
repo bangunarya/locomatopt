@@ -1,9 +1,10 @@
 import numpy as np
 
-def project_l1_ball(vector, radius , stop_thr):
+
+def project_l1_ball(vector, radius, stop_thr):
     
     """ 
-    This code reimplemented from the project_l1_ball.m matlab file from  stackexchange,
+    This code is reimplementation from the project_l1_ball.m matlab file from  stackexchange,
     see the references
     
     A method to solve the Orthoginal Porjection Problem of the input vector onto the
@@ -11,7 +12,7 @@ def project_l1_ball(vector, radius , stop_thr):
     
         Proximal Operator of Infinity Norm:
 
-        Proxtkλg(⋅)(v)=Proxλ∥⋅∥∞(v)=v−λProj{∥⋅∥1≤1}(vλ)
+        Proxtkλg(⋅)(v)=Proxλ∥⋅∥∞(v)=v-λProj{∥⋅∥1≤1}(vλ)
     
         Since dual norm of infinity norm is l1-norm, then 
         we project to the l1 norm ball.
@@ -45,41 +46,36 @@ def project_l1_ball(vector, radius , stop_thr):
     else:
         paramLambda = 0
             
-            # The objective functions which its root (The 'paramLambda' which makes it
-            # vanish) is the solution
-        
-            # Set less than zero to zero
+        # The objective functions which its root (The 'paramLambda' which makes it
+        # vanish) is the solution
+        # Set less than zero to zero
         subs = (np.abs(vector) - paramLambda) 
         subs[subs < 0] = 0        
-        
         
         objVal = np.sum(subs) - radius
 
         while(np.abs(objVal) > stop_thr):
                 
-                # Set less than zero to zero
+            # Set less than zero to zero
         
             subs = (np.abs(vector) - paramLambda)
             subs[subs < 0] = 0
             
-            
-            objVal  = np.sum(subs) - radius
+            objVal = np.sum(subs) - radius
                 
-                # Derivative of 'objVal' with respect to Lambda
-            df              = np.sum(-1*((np.abs(vector) - paramLambda) > 0))
+            # Derivative of 'objVal' with respect to Lambda
+            df = np.sum(-1*((np.abs(vector) - paramLambda) > 0))
                 
-               # Newton Iteration
-            paramLambda     = paramLambda - (objVal / df)
-
+            # Newton Iteration
+            paramLambda = paramLambda - (objVal / df)
            
-            # Enforcing paramLambda >= 0. Otherwise it suggests || vY ||_1 <= radius.
-            # Hence the Optimal vX is given by vX = vY.
+        # Enforcing paramLambda >= 0. Otherwise it suggests || vY ||_1 <= radius.
+        # Hence the Optimal vX is given by vX = vY.
            
-        paramLambda = max(paramLambda,0)
-        
-        
-        ## Return value
+        paramLambda = max(paramLambda, 0)
+               
+        # Return value
         temp_sub = np.abs(vector) - paramLambda
         temp_sub[temp_sub < 0] = 0
             
-        return (vector/np.abs(vector))*temp_sub   
+        return (vector/np.abs(vector))*temp_sub

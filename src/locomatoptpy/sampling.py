@@ -40,8 +40,8 @@ class SamplingPoints:
         The mathematical intelligencer 19.1 (1997): 5-11.
     [2] Equidistribution on the sphere, J Cui, W Freeden - SIAM Journal on Scientific Computing,
     [3] Sparse recovery for spherical harmonic expansions, H Rauhut, R Ward 
-    [4] Burq, Nicolas, et al. "Weighted eigenfunction estimates with applications to compressed sensing."
-        SIAM Journal on Mathematical Analysis 44.5 (2012): 3481-3501.
+    [4] Burq, Nicolas, et al. "Weighted eigenfunction estimates with applications to 
+        compressed sensing" SIAM Journal on Mathematical Analysis 44.5 (2012): 3481-3501.
     [5] https://mathworld.wolfram.com/SpherePointPicking.html
     [6] A Comparison of Popular Point Configurations on S2
         D.P. Hardin, T. J. Michaels, E.B. Saff
@@ -52,19 +52,20 @@ class SamplingPoints:
        
         self.m = m
         self.basis = basis
-        self.generate_angles()
-    
+         
     def generate_angles(self):
         """
         Method to generate total sampling points
         """
-        
-        self.angles = {'theta': self.theta(),
-                       'phi': self.phi()}
+          
+        angles = {'theta': self.theta(),
+                  'phi': self.phi()}
 
         if self.basis == 'wigner' or self.basis == 'snf':
-            self.angles['chi':self.chi()]
-     
+            angles['chi'] = self.chi()
+
+        return angles
+
     def theta(self):
         """
         Method to generate samples on theta
@@ -170,7 +171,7 @@ class FibonacciSampling(SamplingPoints):
         k = 0
         for ii in range(-N, N + 1):
             lat = np.arcsin(2.0*ii/(2.0*N + 1))
-            theta[k] = np.pi/2 - lat     
+            theta[k] = np.pi/2 - lat
             k += 1
         
         return theta
@@ -185,7 +186,7 @@ class FibonacciSampling(SamplingPoints):
         phi = np.zeros(2*N + 1)
         gr = (1 + np.sqrt(5))/(2.0)
         k = 0
-        for ii in range(-N,N + 1):
+        for ii in range(-N, N + 1):
             lat = np.arcsin(2.0*ii/(2.0*N + 1))
             lon = 2.0*np.pi*ii/gr            
             phi[k] = np.arctan2(np.cos(lat)*np.sin(lon), np.cos(lat)*np.cos(lon))
@@ -231,9 +232,9 @@ class HammersleySampling(SamplingPoints):
         """
         s = np.zeros(k)
         for i in np.arange(k)+1:
-            a = self.basexpflip(i,b)
-            g = np.power(b,np.arange(len(a))+1)
-            s[i-1] = np.sum(np.divide(a,g))
+            a = self.basexpflip(i, b)
+            g = np.power(b, np.arange(len(a))+1)
+            s[i-1] = np.sum(np.divide(a, g))
         return s
      
     def theta(self):
@@ -242,7 +243,7 @@ class HammersleySampling(SamplingPoints):
         """
         
         # Generate Hammersley points
-        t = self.vdcorput(self.m,2)
+        t = self.vdcorput(self.m, 2)
         t = 2*t - 1
         
         return np.arccos(t)
@@ -294,7 +295,7 @@ class PoleRandom(SamplingPoints):
         if self.basis == 'snf':
             chi = (np.arange(self.m) % 2)*(np.pi/2)
         if self.basis == 'wigner':
-            chi = np.random.rand(self.m)*2.0*np.pi,
+            chi = np.random.rand(self.m)*2.0*np.pi
                    
         return chi
 
@@ -326,6 +327,6 @@ class UniformRandom(SamplingPoints):
         if self.basis == 'snf':
             chi = (np.arange(self.m) % 2)*(np.pi/2)
         if self.basis == 'wigner':
-            chi = np.random.rand(self.m)*2.0*np.pi,
+            chi = np.random.rand(self.m)*2.0*np.pi
                    
         return chi
