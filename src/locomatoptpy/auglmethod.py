@@ -21,6 +21,7 @@ class ALM(BaseAlgo):
    
     """
     def obj_function(self, params):
+
         return np.linalg.norm(params, 2)**2
 
     def first_condition_backtrack_prox(self, z_aux, vect_coh, u_dual,
@@ -29,18 +30,23 @@ class ALM(BaseAlgo):
 
     def second_condition_backtrack_prox(self, z_aux, vect_coh, u_dual,
                                         grad, rho, c_alpha):
-        return (rho/2)*self.obj_function(z_aux - (vect_coh - u_dual)) + c_alpha*grad.T.conj()@(-grad)
+        return (rho/2)*self.obj_function(z_aux - (vect_coh - u_dual)) + c_alpha*grad.T@-grad
 
     def first_condition_backtrack_ang(self, angles, case, grad, 
                                       u_dual, z_aux, rho, alpha):
-        angles[case] = angles[case] - alpha*grad[case]
+        angles_temp = copy.deepcopy(angles)
 
-        return (rho/2)*self.obj_function(z_aux - (matrix_coherence(self.gen_matrix(angles)) + u_dual))
+        assert np.allclose(angles_temp['phi'], angles['phi'])
+         
+        angles_temp[case] = angles_temp[case] - alpha*grad[case]
+
+        return (rho/2)*self.obj_function(z_aux - (matrix_coherence(self.gen_matrix(angles_temp)) - 
+                                         u_dual))
     
     def second_condition_backtrack_ang(self, angles, case, grad,
                                        u_dual, z_aux, rho, c_alpha):   
-        return (rho/2)*(self.obj_function(z_aux - (matrix_coherence(self.gen_matrix(angles)) + u_dual)) + 
-                        c_alpha*(grad[case].conj().T @ -grad[case]))
+        return (rho/2)*(self.obj_function(z_aux - (matrix_coherence(self.gen_matrix(angles)) - 
+                                          u_dual)) + c_alpha*(grad[case].T @ -grad[case]))
     
     def grad_angle(self, grad, z_aux, vect_coh, u_dual, rho):
         """
@@ -112,11 +118,11 @@ class ALM(BaseAlgo):
                                                       z_aux, vect_coh,
                                                       u_dual, grad, rho))                                    
         # Gradient for the smooth
-        vV = z_aux - step_size*(grad)
+        vV = z_aux - step_size*grad
         # Proximal method to project into l1
         vX = vV - (step_size*paramLambda*project_l1_ball(vV/(paramLambda*step_size), 1, stopThr))
                      
-        return vX 
+        return vX
 
     def fix_theta(self, angles, grad, step_size,
                   u_dual, z_aux, rho):
@@ -141,45 +147,34 @@ class ALM(BaseAlgo):
 
         # Fix theta for checking the bound
         angles['theta'] = np.arccos(np.linspace(-1, 1, len(angles['theta'])))
-
-        
+      
         # Calculate new gradient
-        grad = self.gen_grad(mat=self.gen_matrix(angles=angles))
+        
+        # grad = self.grad_angle(grad=self.gen_grad(mat=self.gen_matrix(angles=angles)), 
+        #                       z_aux=z_aux, vect_coh=matrix_coherence(self.gen_matrix(angles)), 
+        #                       u_dual=u_dual, rho=rho)
         # Update phi
-        step_size_phi = step_size or backtrack_line_search(partial(self.first_condition_backtrack_ang,
-                                                                   angles,
-                                                                   'phi',
-                                                                   grad,
-                                                                   u_dual,
-                                                                   z_aux,
-                                                                   rho),
-                                                           partial(self.second_condition_backtrack_ang,
-                                                                   angles,
-                                                                   'phi',
-                                                                   grad,
-                                                                   u_dual,
-                                                                   z_aux,                                                                   
-                                                                   rho))
+        step_size_phi = (step_size or backtrack_line_search(
+                                        partial(self.first_condition_backtrack_ang,
+                                                angles, 'phi', grad, u_dual, z_aux, rho),
+                                        partial(self.second_condition_backtrack_ang,
+                                                angles, 'phi', grad, u_dual, z_aux, rho)))
+        print(grad['phi'])
         angles['phi'] = angles['phi'] - step_size_phi*grad['phi']
-
+        
         if self.params_mat['types'] == 'wigner':
             # Calculate new gradient
-            grad = self.gen_grad(mat=self.gen_matrix(angles=angles))
+            
+            # grad = self.grad_angle(grad=self.gen_grad(mat=self.gen_matrix(angles=angles)), 
+            #                       z_aux=z_aux, vect_coh=matrix_coherence(self.gen_matrix(angles)), 
+            #                       u_dual=u_dual, rho=rho)
             # Update chi 
-            step_size_chi = step_size or backtrack_line_search(partial(self.first_condition_backtrack_ang,
-                                                                       angles,
-                                                                       'chi',
-                                                                       grad,
-                                                                       u_dual,
-                                                                       z_aux,
-                                                                       rho),
-                                                               partial(self.second_condition_backtrack_ang,
-                                                                       angles,
-                                                                       'chi',
-                                                                       grad,
-                                                                       u_dual,
-                                                                       z_aux,                                                                   
-                                                                       rho))
+            step_size_chi = (step_size or backtrack_line_search(
+                                partial(self.first_condition_backtrack_ang,
+                                        angles, 'chi', grad, u_dual, z_aux, rho),
+                                partial(self.second_condition_backtrack_ang,
+                                        angles, 'chi', grad, u_dual, z_aux, rho)))
+
             angles['chi'] = angles['chi'] - step_size_chi*grad['chi']
         
         return angles
@@ -205,61 +200,41 @@ class ALM(BaseAlgo):
         """
     
         # Update theta
-        step_size_theta = step_size or backtrack_line_search(partial(self.first_condition_backtrack_ang,
-                                                                     angles,
-                                                                     'theta',
-                                                                     grad,
-                                                                     u_dual,
-                                                                     z_aux,
-                                                                     rho),
-                                                             partial(self.second_condition_backtrack_ang,
-                                                                     angles,
-                                                                     'theta',
-                                                                     grad,
-                                                                     u_dual,
-                                                                     z_aux,                                                          
-                                                                     rho))
+        step_size_theta = (step_size or 
+                           backtrack_line_search(
+                            partial(self.first_condition_backtrack_ang,
+                                    angles, 'theta', grad, u_dual, z_aux, rho),
+                            partial(self.second_condition_backtrack_ang,
+                                    angles, 'theta', grad, u_dual, z_aux, rho)))
 
         angles['theta'] = angles['theta'] - step_size_theta*grad['theta']
         
         # Calculate new gradient
-        grad = self.gen_grad(mat=self.gen_matrix(angles=angles))
+        # grad = self.grad_angle(grad=self.gen_grad(mat=self.gen_matrix(angles=angles)), 
+        #                       z_aux=z_aux, vect_coh=matrix_coherence(self.gen_matrix(angles)), 
+        #                       u_dual=u_dual, rho=rho)
         # Update phi
-        step_size_phi = step_size or backtrack_line_search(partial(self.first_condition_backtrack_ang,
-                                                                   angles,
-                                                                   'phi',
-                                                                   grad,
-                                                                   u_dual,
-                                                                   z_aux,
-                                                                   rho),
-                                                           partial(self.second_condition_backtrack_ang,
-                                                                   angles,
-                                                                   'phi',
-                                                                   grad,
-                                                                   u_dual,
-                                                                   z_aux,                                                          
-                                                                   rho))
+        step_size_phi = (step_size or 
+                         backtrack_line_search(
+                            partial(self.first_condition_backtrack_ang,
+                                    angles, 'phi', grad, u_dual, z_aux, rho),
+                            partial(self.second_condition_backtrack_ang,
+                                    angles, 'phi', grad, u_dual, z_aux, rho)))
         angles['phi'] = angles['phi'] - step_size_phi*grad['phi']
 
         if self.params_mat['types'] == 'wigner':
             # Calculate new gradient
-            grad = self.gen_grad(mat=self.gen_matrix(angles=angles))
+            # grad = self.grad_angle(grad=self.gen_grad(mat=self.gen_matrix(angles=angles)), 
+            #                              z_aux=z_aux, 
+            #                              vect_coh=matrix_coherence(self.gen_matrix(angles)), 
+            #                              u_dual=u_dual, rho=rho)
             # Update chi 
             step_size_chi = (step_size or 
-                             backtrack_line_search(partial(self.first_condition_backtrack_ang,
-                                                           angles,
-                                                           'chi',
-                                                           grad,
-                                                           u_dual,
-                                                           z_aux,
-                                                           rho),
-                                                   partial(self.second_condition_backtrack_ang,
-                                                           angles,
-                                                           'chi',
-                                                           grad,
-                                                           u_dual,
-                                                           z_aux,                                                          
-                                                           rho)))
+                             backtrack_line_search(
+                                partial(self.first_condition_backtrack_ang,
+                                        angles, 'chi', grad, u_dual, z_aux, rho),
+                                partial(self.second_condition_backtrack_ang,
+                                        angles, 'chi', grad, u_dual, z_aux, rho)))
 
             angles['chi'] = angles['chi'] - step_size_chi*grad['chi']
         
@@ -339,22 +314,25 @@ class ALM(BaseAlgo):
           
         """
      
-        # Proximal inf norm
-        
+        # Proximal inf norm      
         z_aux = self.update_prox(vect_coh, u_dual, 
                                  z_aux, rho,
                                  step_size)
-
+        
         # Update for fix or all     
-        angles = self.update_ang(step_size, grad,  vect_coh, u_dual, 
+        angles = self.update_ang(step_size, grad,  vect_coh, 
+                                 u_dual, 
                                  z_aux, rho, angles)
-        
+         
+        # Get matrix
+        print(angles)
+        mat = self.gen_matrix(angles=angles)
         # Get gradient
-        grad = self.gen_grad(self.gen_matrix(angles=angles)) 
-        
+        grad = self.gen_grad(mat) 
+        print(grad)
         # Update coherence vector
-        vect_coh = matrix_coherence(self.gen_matrix(angles=angles))
-       
+        vect_coh = matrix_coherence(mat)
+         
         # Update mu
         u_dual = u_dual + rho*(z_aux - vect_coh)
         
@@ -418,38 +396,36 @@ class ALM(BaseAlgo):
             - coherence
                 updated coherence 
         """
-        ## Lower bound
-        lower_bound = self.lower_bound(angles = angles)
+        # Lower bound
+        lower_bound = self.lower_bound(angles=angles)
       
-        ## Initial iteration
+        # Initial iteration
         iterate = 0
         
-        ## Initial parameter ALM
-        grad, vect_coh, coh, u_dual, z_aux, rho = self.params_alm(angles = angles)
+        # Initial parameter ALM
+        grad, vect_coh, coh, u_dual, z_aux, rho = self.params_alm(angles=angles)
         
-        ## Initial angle
+        # Initial angle
         alm_ang = copy.deepcopy(angles)
         
         while (iterate < self.params_grad['max_iter'] and 
                np.abs(coh - lower_bound) > self.params_grad['eps']):
             
-            ## Add iteration
+            # Add iteration
             iterate += 1
            
-            
-            ## Update for fix or all
+            # Update for fix or all
             angles, grad, vect_coh, u_dual, z_aux = self.step_update(angles, rho,
                                                                      grad, vect_coh, 
                                                                      u_dual, z_aux, 
                                                                      step_size)
- 
-            ### Store if we have better coherence
-            mat = self.gen_matrix(angles= angles)
+            # Store if we have better coherence
+            mat = self.gen_matrix(angles=angles)
             
             if coherence(mat.normA) < coh:
-                ## Calculate the coherence
+                # Calculate the coherence
                 coh = coherence(mat.normA)
-                ## Get the angles
+                # Get the angles
                 alm_ang = copy.deepcopy(angles)
              
         return {'coherence': coh,

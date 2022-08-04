@@ -8,7 +8,7 @@ def matrix_coherence(mat):
     r, c = np.triu_indices(gram.shape[0], 1)
     gram_triu = gram[r, c]
      
-    return np.sort(gram_triu)
+    return gram_triu
    
 
 def vector_coherence_sh(params_mat, mat):
@@ -56,7 +56,7 @@ def vector_coherence_sh(params_mat, mat):
     vect_comb = np.sqrt(np.abs(np.sum(ProductasLeg*mat_cos, 0))**2 +
                         np.abs(np.sum(ProductasLeg*mat_sin, 0))**2)
     
-    return np.sort(vect_comb)
+    return vect_comb
 
 
 def vector_coherence_wigner(params_mat, mat):
@@ -103,7 +103,7 @@ def vector_coherence_wigner(params_mat, mat):
         
     vector_comb = np.sqrt(np.abs(np.sum(ProductWignerd*mat_cos, 0))**2 +
                           np.abs(np.sum(ProductWignerd*mat_sin, 0))**2)
-    return np.sort(vector_comb)
+    return vector_comb
     
 
 def vector_coherence_snf(params_mat, mat):
@@ -131,25 +131,30 @@ def vector_coherence_snf(params_mat, mat):
         vectorizing coherence of  Wigner D-functions sensing matrix
         for spherical near-field measurements (SNF)
     '''
-    col_comb = params_mat['col_comb']
+    # col_comb = params_mat['col_comb']
         
-    N = mat.N//2
+    # N = mat.N//2
       
-    norm_A1 = mat.normA[:, 0:N]
-    norm_A2 = mat.normA[:, N::]
+    # norm_A1 = mat.normA[:, 0:N]
+    # norm_A2 = mat.normA[:, N::]
         
     #  Combination    
-    idx_12 = np.nonzero(col_comb[:, 1] > col_comb[:, 0])[0]
+    # idx_12 = np.nonzero(col_comb[:, 1] > col_comb[:, 0])[0]
 
     #  ProductCoh3
-    ProductCoh3 = norm_A1[:, col_comb[:, 0]]*np.conj(norm_A2[:, col_comb[:, 1]])
-    ProductCoh1 = norm_A1[:, col_comb[idx_12, 0]]*np.conj(norm_A1[:, col_comb[idx_12, 1]])
-    ProductCoh2 = norm_A2[:, col_comb[idx_12, 0]]*np.conj(norm_A2[:, col_comb[idx_12, 1]])
+    # ProductCoh3 = norm_A1[:, col_comb[:, 0]]*np.conj(norm_A2[:, col_comb[:, 1]])
+    # ProductCoh1 = norm_A1[:, col_comb[idx_12, 0]]*np.conj(norm_A1[:, col_comb[idx_12, 1]])
+    # ProductCoh2 = norm_A2[:, col_comb[idx_12, 0]]*np.conj(norm_A2[:, col_comb[idx_12, 1]])
        
-    ProductCohTot = np.concatenate((np.sum(ProductCoh1, 0),
-                                    np.sum(ProductCoh3, 0),
-                                    np.sum(ProductCoh2, 0)), axis=0)
+    # ProductCohTot = np.concatenate((np.sum(ProductCoh3, 0),
+    #                                np.sum(ProductCoh2, 0),
+    #                                np.sum(ProductCoh1, 0)), axis=0)
 
-    vector_comb = np.abs(ProductCohTot)
-      
-    return np.sort(vector_comb)
+    # vector_comb = np.abs(ProductCohTot)
+    # np.sort(vector_comb)
+    
+    gram = np.abs(np.dot(mat.normA.conjugate().T, mat.normA))
+    r, c = np.triu_indices(gram.shape[0], 1)
+    gram_triu = gram[r, c]
+
+    return gram_triu

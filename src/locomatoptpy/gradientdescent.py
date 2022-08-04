@@ -20,8 +20,11 @@ class GradDescent(BaseAlgo):
         return np.linalg.norm(matrix_coherence(matrix), self.params_grad['p_norm'])
     
     def first_condition_backtrack(self, angles, case, grad, alpha):
-        angles[case] = angles[case] - alpha*grad[case]
-        return self.obj_function(angles)
+        angles_temp = copy.deepcopy(angles)
+        assert np.allclose(angles_temp['theta'], angles['theta'])
+        assert np.allclose(angles_temp['phi'], angles['phi'])
+        angles_temp[case] = angles_temp[case] - alpha*grad[case]
+        return self.obj_function(angles_temp)
 
     def second_condition_backtrack(self, angles, case, grad, c_alpha):
         
@@ -53,28 +56,26 @@ class GradDescent(BaseAlgo):
         # Calculate new gradient
         grad = self.gen_grad(mat=self.gen_matrix(angles=angles))
         # Update phi
-        step_size_phi = step_size or backtrack_line_search(partial(self.first_condition_backtrack,
-                                                                   angles,
-                                                                   'phi', 
-                                                                   grad),
-                                                           partial(self.second_condition_backtrack,
-                                                                   angles,
-                                                                   'phi', 
-                                                                   grad))
+        step_size_phi = (step_size or 
+                         backtrack_line_search(
+                            partial(self.first_condition_backtrack,
+                                    angles, 'phi', grad),
+                            partial(self.second_condition_backtrack,
+                                    angles, 'phi', grad)))
+
         angles['phi'] = angles['phi'] - step_size_phi*grad['phi']
 
         if self.params_mat['types'] == 'wigner':
-             # Calculate new gradient
+            # Calculate new gradient
             grad = self.gen_grad(mat=self.gen_matrix(angles=angles))
             # Update chi 
-            step_size_chi = step_size or backtrack_line_search(partial(self.first_condition_backtrack,
-                                                                       angles, 
-                                                                       'chi', 
-                                                                       grad),
-                                                               partial(self.second_condition_backtrack,
-                                                                       angles,
-                                                                       'chi',
-                                                                       grad))
+            step_size_chi = (step_size or 
+                             backtrack_line_search(
+                                partial(self.first_condition_backtrack,
+                                        angles, 'chi', grad),
+                                partial(self.second_condition_backtrack,
+                                        angles, 'chi', grad)))
+
             angles['chi'] = angles['chi'] - step_size_chi*grad['chi']
         
         return angles
@@ -98,42 +99,39 @@ class GradDescent(BaseAlgo):
         """
     
         # Update theta
-        step_size_theta = step_size or backtrack_line_search(partial(self.first_condition_backtrack, 
-                                                                     angles, 
-                                                                     'theta', 
-                                                                     grad),
-                                                             partial(self.second_condition_backtrack, 
-                                                                     angles, 
-                                                                     'theta', 
-                                                                     grad))
+        step_size_theta = (step_size or
+                           backtrack_line_search(
+                            partial(self.first_condition_backtrack, 
+                                    angles, 'theta', grad),
+                            partial(self.second_condition_backtrack, 
+                                    angles, 'theta', grad)))
+
         angles['theta'] = angles['theta'] - step_size_theta*grad['theta']
 
         # Calculate new gradient
         grad = self.gen_grad(mat=self.gen_matrix(angles=angles))
 
         # Update phi
-        step_size_phi = step_size or backtrack_line_search(partial(self.first_condition_backtrack, 
-                                                                   angles, 
-                                                                   'phi', 
-                                                                   grad),
-                                                           partial(self.second_condition_backtrack, 
-                                                                   angles, 
-                                                                   'phi', 
-                                                                   grad))
+        step_size_phi = (step_size or 
+                         backtrack_line_search(
+                            partial(self.first_condition_backtrack,
+                                    angles, 'phi', grad),
+                            partial(self.second_condition_backtrack,
+                                    angles, 'phi', grad)))
+
         angles['phi'] = angles['phi'] - step_size_phi*grad['phi']
 
         if self.params_mat['types'] == 'wigner':
-             # Calculate new gradient
+            # Calculate new gradient
             grad = self.gen_grad(mat=self.gen_matrix(angles=angles))
             # Update chi 
-            step_size_chi = step_size or backtrack_line_search(partial(self.first_condition_backtrack,
-                                                                       angles,
-                                                                       'chi', 
-                                                                       grad),
-                                                               partial(self.second_condition_backtrack,
-                                                                       angles, 
-                                                                       'chi', 
-                                                                       grad))
+            step_size_chi = (step_size or 
+                             backtrack_line_search(
+                                partial(self.first_condition_backtrack,
+                                        angles, 'chi', grad),
+                                partial(self.second_condition_backtrack,
+                                        angles, 'chi', grad)))
+
             angles['chi'] = angles['chi'] - step_size_chi*grad['chi']
         
         return angles

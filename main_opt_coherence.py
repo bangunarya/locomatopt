@@ -62,7 +62,7 @@ def coherence_optimization(
             
         gd_ang_sample.append(res_gradesc['angle'])
         gd_coh_sample.append(res_gradesc['coherence'])
-
+        
         # ALM 
         alm = ALM(params_mat=params_mat, params_grad=params_grad)
         res_alm = alm.run_algo(angles=unif_rand.generate_angles(), step_size=step_size)
@@ -74,7 +74,7 @@ def coherence_optimization(
             
         alm_ang_sample.append(res_alm['angle'])
         alm_coh_sample.append(res_alm['coherence'])
-
+        
     total_result = {'m': m, 'B': params_mat['B'], 'N': params_mat['N'],
                     'alm_ang': alm_ang_sample, 'alm_coh': alm_coh_sample,
                     'gd_ang': gd_ang_sample, 'gd_coh': gd_coh_sample}
@@ -102,8 +102,8 @@ if __name__ == '__main__':
                   'col_comb': col_comb, 'case': case}
     p = 9
     # Gradient Parameters
-    params_grad = {'max_iter':  100, 'eps': 1e-6,
-                   'update': 'update_all', 'p_norm': p}
+    params_grad = {'max_iter': 300, 'eps': 1e-6,
+                   'update': 'fix_theta', 'p_norm': p}
 
     # Path
     folder = os.path.join('results/', case, types)
