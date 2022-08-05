@@ -14,5 +14,5 @@ def backtrack_line_search(first_condition, second_condition):
     while (first_condition(alpha) - second_condition(alpha*c)) >= 1e-4:
         
         alpha *= rho
-    print(alpha)
+    
     return alpha

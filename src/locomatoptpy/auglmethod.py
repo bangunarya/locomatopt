@@ -35,8 +35,8 @@ class ALM(BaseAlgo):
     def first_condition_backtrack_ang(self, angles, case, grad, 
                                       u_dual, z_aux, rho, alpha):
         angles_temp = copy.deepcopy(angles)
-
-        assert np.allclose(angles_temp['phi'], angles['phi'])
+        print(alpha)
+ 
          
         angles_temp[case] = angles_temp[case] - alpha*grad[case]
 
@@ -117,6 +117,7 @@ class ALM(BaseAlgo):
                                               partial(self.second_condition_backtrack_prox,
                                                       z_aux, vect_coh,
                                                       u_dual, grad, rho))                                    
+ 
         # Gradient for the smooth
         vV = z_aux - step_size*grad
         # Proximal method to project into l1
@@ -143,10 +144,7 @@ class ALM(BaseAlgo):
         Returns:
             - angles
                 updated angles
-        """
-
-        # Fix theta for checking the bound
-        angles['theta'] = np.arccos(np.linspace(-1, 1, len(angles['theta'])))
+        """ 
       
         # Calculate new gradient
         
@@ -159,7 +157,7 @@ class ALM(BaseAlgo):
                                                 angles, 'phi', grad, u_dual, z_aux, rho),
                                         partial(self.second_condition_backtrack_ang,
                                                 angles, 'phi', grad, u_dual, z_aux, rho)))
-        print(grad['phi'])
+        #print(step_size_phi)
         angles['phi'] = angles['phi'] - step_size_phi*grad['phi']
         
         if self.params_mat['types'] == 'wigner':
@@ -325,11 +323,11 @@ class ALM(BaseAlgo):
                                  z_aux, rho, angles)
          
         # Get matrix
-        print(angles)
+        #print(angles)
         mat = self.gen_matrix(angles=angles)
         # Get gradient
         grad = self.gen_grad(mat) 
-        print(grad)
+        
         # Update coherence vector
         vect_coh = matrix_coherence(mat)
          
@@ -373,10 +371,10 @@ class ALM(BaseAlgo):
         coh = np.max(vect_coh)
     
         # Dual
-        u_dual = np.zeros_like(vect_coh)
+        u_dual = np.random.randn(vect_coh.shape[0])
         
         # Aux variables
-        z_aux = np.zeros_like(u_dual)
+        z_aux = np.random.randn(vect_coh.shape[0])
         
         rho = 1
         
@@ -396,6 +394,9 @@ class ALM(BaseAlgo):
             - coherence
                 updated coherence 
         """
+        if self.params_grad['update'] == 'fix_theta':
+            # Fix theta for checking the bound
+            angles['theta'] = np.arccos(np.linspace(-1, 1, len(angles['theta'])))
         # Lower bound
         lower_bound = self.lower_bound(angles=angles)
       
@@ -427,6 +428,6 @@ class ALM(BaseAlgo):
                 coh = coherence(mat.normA)
                 # Get the angles
                 alm_ang = copy.deepcopy(angles)
-             
+                
         return {'coherence': coh,
                 'angle': alm_ang}

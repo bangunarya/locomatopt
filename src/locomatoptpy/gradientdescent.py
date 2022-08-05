@@ -49,12 +49,8 @@ class GradDescent(BaseAlgo):
             - angles
                 updated angles
         """
-
-        # Fix theta for checking the bound
-        angles['theta'] = np.arccos(np.linspace(-1, 1, len(angles['theta'])))
-
-        # Calculate new gradient
-        grad = self.gen_grad(mat=self.gen_matrix(angles=angles))
+ 
+ 
         # Update phi
         step_size_phi = (step_size or 
                          backtrack_line_search(
@@ -174,6 +170,11 @@ class GradDescent(BaseAlgo):
             - coherence
                 updated coherence 
         """
+        # Check condition for update
+        if self.params_grad['update'] == 'fix_theta':
+            # Fix theta for checking the bound
+            angles['theta'] = np.arccos(np.linspace(-1, 1, len(angles['theta'])))
+
         # Lower bound
         lower_bound = self.lower_bound(angles=angles)
         

@@ -102,7 +102,7 @@ if __name__ == '__main__':
                   'col_comb': col_comb, 'case': case}
     p = 9
     # Gradient Parameters
-    params_grad = {'max_iter': 300, 'eps': 1e-6,
+    params_grad = {'max_iter': 100, 'eps': 1e-6,
                    'update': 'fix_theta', 'p_norm': p}
 
     # Path
