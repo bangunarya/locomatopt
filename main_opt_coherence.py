@@ -102,8 +102,8 @@ if __name__ == '__main__':
                   'col_comb': col_comb, 'case': case}
     p = 9
     # Gradient Parameters
-    params_grad = {'max_iter': 100, 'eps': 1e-6,
-                   'update': 'fix_theta', 'p_norm': p}
+    params_grad = {'max_iter': 200, 'eps': 1e-6,
+                   'update': 'update_all', 'p_norm': p}
 
     # Path
     folder = os.path.join('results/', case, types)

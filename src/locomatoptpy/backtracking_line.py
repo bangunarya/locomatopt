@@ -8,11 +8,11 @@ def backtrack_line_search(first_condition, second_condition):
     
     """
     alpha = 1
-    rho = 0.8
+    eta = 0.8
     c = 1e-4
-    
-    while (first_condition(alpha) - second_condition(alpha*c)) >= 1e-4:
-        
-        alpha *= rho
-    
+
+    while first_condition(alpha) >= second_condition(alpha*c): 
+        alpha *= eta
+        if alpha <= 1e-6:
+            break    
     return alpha

@@ -34,10 +34,10 @@ class ALM(BaseAlgo):
 
     def first_condition_backtrack_ang(self, angles, case, grad, 
                                       u_dual, z_aux, rho, alpha):
-        angles_temp = copy.deepcopy(angles)
-        print(alpha)
- 
          
+        angles_temp = copy.deepcopy(angles)
+        # print(np.linalg.norm(angles_temp['phi'] - angles['phi']), alpha)
+        
         angles_temp[case] = angles_temp[case] - alpha*grad[case]
 
         return (rho/2)*self.obj_function(z_aux - (matrix_coherence(self.gen_matrix(angles_temp)) - 
@@ -109,19 +109,21 @@ class ALM(BaseAlgo):
         paramLambda = 1.0
         stopThr = 1e-6
         grad = rho*(z_aux - (vect_coh - u_dual))
-        
-        if step_size is None:
-            step_size = backtrack_line_search(partial(self.first_condition_backtrack_prox,
-                                                      z_aux, vect_coh,
-                                                      u_dual, grad, rho),
-                                              partial(self.second_condition_backtrack_prox,
-                                                      z_aux, vect_coh,
-                                                      u_dual, grad, rho))                                    
- 
+         
+        # print('Backtracking for ALM prox', step_size)
+        step_size_prox = step_size or backtrack_line_search(
+                                        partial(self.first_condition_backtrack_prox,
+                                                z_aux, vect_coh,
+                                                u_dual, grad, rho),
+                                        partial(self.second_condition_backtrack_prox,
+                                                z_aux, vect_coh,
+                                                u_dual, grad, rho))                                    
+
         # Gradient for the smooth
-        vV = z_aux - step_size*grad
+        vV = z_aux - step_size_prox*grad
         # Proximal method to project into l1
-        vX = vV - (step_size*paramLambda*project_l1_ball(vV/(paramLambda*step_size), 1, stopThr))
+        vX = vV - (step_size_prox*paramLambda*project_l1_ball(vV/(paramLambda*step_size_prox), 1, 
+                   stopThr))
                      
         return vX
 
@@ -152,12 +154,13 @@ class ALM(BaseAlgo):
         #                       z_aux=z_aux, vect_coh=matrix_coherence(self.gen_matrix(angles)), 
         #                       u_dual=u_dual, rho=rho)
         # Update phi
+ 
         step_size_phi = (step_size or backtrack_line_search(
                                         partial(self.first_condition_backtrack_ang,
                                                 angles, 'phi', grad, u_dual, z_aux, rho),
                                         partial(self.second_condition_backtrack_ang,
                                                 angles, 'phi', grad, u_dual, z_aux, rho)))
-        #print(step_size_phi)
+         
         angles['phi'] = angles['phi'] - step_size_phi*grad['phi']
         
         if self.params_mat['types'] == 'wigner':
@@ -212,6 +215,7 @@ class ALM(BaseAlgo):
         #                       z_aux=z_aux, vect_coh=matrix_coherence(self.gen_matrix(angles)), 
         #                       u_dual=u_dual, rho=rho)
         # Update phi
+
         step_size_phi = (step_size or 
                          backtrack_line_search(
                             partial(self.first_condition_backtrack_ang,
@@ -323,14 +327,14 @@ class ALM(BaseAlgo):
                                  z_aux, rho, angles)
          
         # Get matrix
-        #print(angles)
+ 
         mat = self.gen_matrix(angles=angles)
         # Get gradient
         grad = self.gen_grad(mat) 
         
         # Update coherence vector
         vect_coh = matrix_coherence(mat)
-         
+ 
         # Update mu
         u_dual = u_dual + rho*(z_aux - vect_coh)
         
@@ -369,12 +373,12 @@ class ALM(BaseAlgo):
             
         # Initial coherence
         coh = np.max(vect_coh)
-    
+
         # Dual
-        u_dual = np.random.randn(vect_coh.shape[0])
+        u_dual = np.zeros_like(vect_coh) 
         
         # Aux variables
-        z_aux = np.random.randn(vect_coh.shape[0])
+        z_aux = np.zeros_like(vect_coh) 
         
         rho = 1
         

@@ -21,8 +21,6 @@ class GradDescent(BaseAlgo):
     
     def first_condition_backtrack(self, angles, case, grad, alpha):
         angles_temp = copy.deepcopy(angles)
-        assert np.allclose(angles_temp['theta'], angles['theta'])
-        assert np.allclose(angles_temp['phi'], angles['phi'])
         angles_temp[case] = angles_temp[case] - alpha*grad[case]
         return self.obj_function(angles_temp)
 
@@ -50,15 +48,15 @@ class GradDescent(BaseAlgo):
                 updated angles
         """
  
- 
         # Update phi
+      
         step_size_phi = (step_size or 
                          backtrack_line_search(
                             partial(self.first_condition_backtrack,
                                     angles, 'phi', grad),
                             partial(self.second_condition_backtrack,
                                     angles, 'phi', grad)))
-
+         
         angles['phi'] = angles['phi'] - step_size_phi*grad['phi']
 
         if self.params_mat['types'] == 'wigner':
@@ -101,7 +99,7 @@ class GradDescent(BaseAlgo):
                                     angles, 'theta', grad),
                             partial(self.second_condition_backtrack, 
                                     angles, 'theta', grad)))
-
+      
         angles['theta'] = angles['theta'] - step_size_theta*grad['theta']
 
         # Calculate new gradient
@@ -114,7 +112,7 @@ class GradDescent(BaseAlgo):
                                     angles, 'phi', grad),
                             partial(self.second_condition_backtrack,
                                     angles, 'phi', grad)))
-
+        
         angles['phi'] = angles['phi'] - step_size_phi*grad['phi']
 
         if self.params_mat['types'] == 'wigner':
