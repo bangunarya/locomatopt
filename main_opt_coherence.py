@@ -1,11 +1,11 @@
 import numpy as np
 import os
-from locomatoptpy.sampling import UniformRandom 
-from locomatoptpy.metric import params_matrix
-from locomatoptpy.gradientdescent import GradDescent
-from locomatoptpy.auglmethod import ALM
-from locomatoptpy.matrix import MatrixSH, MatrixWigner, MatrixSNF
-from locomatoptpy.metric import coherence
+from locomatopt.sampling import UniformRandom 
+from locomatopt.metric import params_matrix
+from locomatopt.gradientdescent import GradDescent
+from locomatopt.auglmethod import ALM
+from locomatopt.matrix import MatrixSH, MatrixWigner, MatrixSNF
+from locomatopt.metric import coherence
 from typing import Tuple, Optional, List
 
 
