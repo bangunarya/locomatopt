@@ -15,7 +15,7 @@ The following Python libraries are required to run the code in this repository:
 numpy
 scipy
 ```
-and can be installed with pip install -e .
+and can be installed with ```pip install -e .```
 
 # Usage
 All the figures in the paper can be reproduced by running the notebook ```Example.ipynb``` 
