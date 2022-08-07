@@ -23,9 +23,7 @@ All the figures in the paper can be reproduced by running the notebook ```Exampl
 # Results
 The following figures are the result of sampling points on the sphere and the coherence of a matrix
 constructed from the optimized sampling points
-
-<img src="[http://....jpg](https://user-images.githubusercontent.com/47388866/183307996-70741b89-f1ae-4b64-8e31-784fe078de8c.png))" width="200" height="200" />
-
+<img src="https://user-images.githubusercontent.com/47388866/183307996-70741b89-f1ae-4b64-8e31-784fe078de8c.png" width="200" height="200" />
 
 ## Citation
 ```
