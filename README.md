@@ -1,11 +1,12 @@
 # Low Coherence Matrix Optimization
 
-This repository contains the code for the following papers:
+This repository contains the code for the optimization of sampling points on the sphere and the rotation group that yield low-coherence matrices constructed from spherical harmonics and Wigner D-functions. The results and algorithms have been published in the following papers:
 
 
-[Sensing Matrix Design and Sparse Recovery on the Sphere and the Rotation Group](https://arxiv.org/abs/1904.11596)
-[Tight bounds on the mutual coherence of sensing matrices for Wigner D-functions on regular grids](https://link.springer.com/article/10.1007/s43670-021-00006-2)
-[Optimizing Sensing Matrices for Spherical Near-Field Antenna Measurements](https://arxiv.org/abs/2206.02181)
+[Sensing Matrix Design and Sparse Recovery on the Sphere and the Rotation Group](https://arxiv.org/abs/1904.11596)\
+[Tight bounds on the mutual coherence of sensing matrices for Wigner D-functions on regular grids](https://link.springer.com/article/10.1007/s43670-021-00006-2)\
+[Optimizing Sensing Matrices for Spherical Near-Field Antenna Measurements](https://arxiv.org/abs/2206.02181)\
+
 #Requirements
 
 The following Python libraries are required to run the code in this repository:
