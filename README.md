@@ -27,7 +27,8 @@ constructed from the optimized sampling points.
 
 <div class="row">
   <div class="column">
-    <img src="https://user-images.githubusercontent.com/47388866/183307996-70741b89-f1ae-4b64-8e31-784fe078de8c.png" width="200" height="150" />
+    <img src="https://user-images.githubusercontent.com/47388866/183307996-70741b89-f1ae-4b64-8e31-784fe078de8c.png" width="200" height="150" style="float:left"/>
+    
   </div>
   <div class="column">
     <img src="https://user-images.githubusercontent.com/47388866/183308007-59e1dfe6-0cfa-4202-874b-302cadae5324.png" width="200" height="150" />
