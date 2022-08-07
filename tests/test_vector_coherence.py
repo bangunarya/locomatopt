@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
-from locomatoptpy.sampling import SpiralSampling, UniformRandom, PoleRandom
-from locomatoptpy.matrix import MatrixSH, MatrixWigner, MatrixSNF
-from locomatoptpy.vectorizing_coh import vector_coherence_sh, vector_coherence_wigner, vector_coherence_snf, matrix_coherence
-from locomatoptpy.metric import params_matrix
+from locomatopt.sampling import SpiralSampling, UniformRandom, PoleRandom
+from locomatopt.matrix import MatrixSH, MatrixWigner, MatrixSNF
+from locomatopt.vectorizing_coh import vector_coherence_sh, vector_coherence_wigner, vector_coherence_snf, matrix_coherence
+from locomatopt.metric import params_matrix
 
  
 def test_vect_sh():

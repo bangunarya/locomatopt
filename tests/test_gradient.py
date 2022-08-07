@@ -1,10 +1,10 @@
-from locomatoptpy.sampling import UniformRandom
-from locomatoptpy.gradient_old import GradSH, GradWigner, GradWignerSNF
-from locomatoptpy.gradient import GradSH as GSH
-from locomatoptpy.gradient import GradWigner as GW
-from locomatoptpy.gradient import GradWignerSNF as GWS
-from locomatoptpy.matrix import MatrixSH, MatrixWigner, MatrixSNF
-from locomatoptpy.metric import params_matrix
+from locomatopt.sampling import UniformRandom
+from gradient_old import GradSH, GradWigner, GradWignerSNF
+from locomatopt.gradient import GradSH as GSH
+from locomatopt.gradient import GradWigner as GW
+from locomatopt.gradient import GradWignerSNF as GWS
+from locomatopt.matrix import MatrixSH, MatrixWigner, MatrixSNF
+from locomatopt.metric import params_matrix
 import numpy as np
 
 

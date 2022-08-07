@@ -1,5 +1,5 @@
-from locomatoptpy.sampling import SpiralSampling
-from locomatoptpy.matrix import MatrixSH, MatrixWigner, MatrixSNF
+from locomatopt.sampling import SpiralSampling
+from locomatopt.matrix import MatrixSH, MatrixWigner, MatrixSNF
 import numpy as np
 import pytest
 import os

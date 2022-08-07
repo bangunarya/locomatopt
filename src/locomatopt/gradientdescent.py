@@ -60,8 +60,7 @@ class GradDescent(BaseAlgo):
         angles['phi'] = angles['phi'] - step_size_phi*grad['phi']
 
         if self.params_mat['types'] == 'wigner':
-            # Calculate new gradient
-            grad = self.gen_grad(mat=self.gen_matrix(angles=angles))
+            
             # Update chi 
             step_size_chi = (step_size or 
                              backtrack_line_search(
@@ -102,9 +101,7 @@ class GradDescent(BaseAlgo):
       
         angles['theta'] = angles['theta'] - step_size_theta*grad['theta']
 
-        # Calculate new gradient
-        grad = self.gen_grad(mat=self.gen_matrix(angles=angles))
-
+       
         # Update phi
         step_size_phi = (step_size or 
                          backtrack_line_search(
@@ -116,8 +113,7 @@ class GradDescent(BaseAlgo):
         angles['phi'] = angles['phi'] - step_size_phi*grad['phi']
 
         if self.params_mat['types'] == 'wigner':
-            # Calculate new gradient
-            grad = self.gen_grad(mat=self.gen_matrix(angles=angles))
+            
             # Update chi 
             step_size_chi = (step_size or 
                              backtrack_line_search(
@@ -206,11 +202,13 @@ class GradDescent(BaseAlgo):
             mat = self.gen_matrix(angles=angles)
             # Get gradient
             grad = self.gen_grad(mat=mat)
-              
+            
+            coh_new = coherence(mat.normA)
+             
             # Store if we have better coherence
-            if coherence(mat.normA) < coh:
+            if coh_new < coh:
                 # Calculate the coherence
-                coh = coherence(mat.normA)
+                coh = coh_new.copy()
                 # Get the angles
                 graddes_ang = copy.deepcopy(angles)
         

@@ -1,6 +1,6 @@
 import numpy as np
 from .basealgo import BaseAlgo
-from .metric import coherence
+ 
 import copy
 from .vectorizing_coh import matrix_coherence
 from .prox import project_l1_ball
@@ -148,11 +148,7 @@ class ALM(BaseAlgo):
                 updated angles
         """ 
       
-        # Calculate new gradient
         
-        # grad = self.grad_angle(grad=self.gen_grad(mat=self.gen_matrix(angles=angles)), 
-        #                       z_aux=z_aux, vect_coh=matrix_coherence(self.gen_matrix(angles)), 
-        #                       u_dual=u_dual, rho=rho)
         # Update phi
  
         step_size_phi = (step_size or backtrack_line_search(
@@ -164,11 +160,7 @@ class ALM(BaseAlgo):
         angles['phi'] = angles['phi'] - step_size_phi*grad['phi']
         
         if self.params_mat['types'] == 'wigner':
-            # Calculate new gradient
             
-            # grad = self.grad_angle(grad=self.gen_grad(mat=self.gen_matrix(angles=angles)), 
-            #                       z_aux=z_aux, vect_coh=matrix_coherence(self.gen_matrix(angles)), 
-            #                       u_dual=u_dual, rho=rho)
             # Update chi 
             step_size_chi = (step_size or backtrack_line_search(
                                 partial(self.first_condition_backtrack_ang,
@@ -210,10 +202,6 @@ class ALM(BaseAlgo):
 
         angles['theta'] = angles['theta'] - step_size_theta*grad['theta']
         
-        # Calculate new gradient
-        # grad = self.grad_angle(grad=self.gen_grad(mat=self.gen_matrix(angles=angles)), 
-        #                       z_aux=z_aux, vect_coh=matrix_coherence(self.gen_matrix(angles)), 
-        #                       u_dual=u_dual, rho=rho)
         # Update phi
 
         step_size_phi = (step_size or 
@@ -225,11 +213,7 @@ class ALM(BaseAlgo):
         angles['phi'] = angles['phi'] - step_size_phi*grad['phi']
 
         if self.params_mat['types'] == 'wigner':
-            # Calculate new gradient
-            # grad = self.grad_angle(grad=self.gen_grad(mat=self.gen_matrix(angles=angles)), 
-            #                              z_aux=z_aux, 
-            #                              vect_coh=matrix_coherence(self.gen_matrix(angles)), 
-            #                              u_dual=u_dual, rho=rho)
+            
             # Update chi 
             step_size_chi = (step_size or 
                              backtrack_line_search(
@@ -424,12 +408,13 @@ class ALM(BaseAlgo):
                                                                      grad, vect_coh, 
                                                                      u_dual, z_aux, 
                                                                      step_size)
-            # Store if we have better coherence
-            mat = self.gen_matrix(angles=angles)
+       
+            coh_new = np.max(vect_coh)
             
-            if coherence(mat.normA) < coh:
+          
+            if coh_new < coh:
                 # Calculate the coherence
-                coh = coherence(mat.normA)
+                coh = coh_new.copy()
                 # Get the angles
                 alm_ang = copy.deepcopy(angles)
                 

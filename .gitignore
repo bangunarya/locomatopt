@@ -10,5 +10,5 @@ dask-worker-space
 .vscode
 .egg-info
 .cfg
-src/locomatoptpy.egg-info/
+src/locomatopt.egg-info/
 results/
