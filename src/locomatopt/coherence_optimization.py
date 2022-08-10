@@ -1,15 +1,13 @@
-import numpy as np
-import os
 from locomatopt.sampling import UniformRandom 
 from locomatopt.metric import params_matrix
 from locomatopt.gradientdescent import GradDescent
 from locomatopt.auglmethod import ALM
 from locomatopt.matrix import MatrixSH, MatrixWigner, MatrixSNF
 from locomatopt.metric import coherence
-from typing import Tuple, Optional, List, Union
+from typing import Optional, Union
 from typing import TypedDict
 from typing_extensions import Literal
-Mode = Union[Literal['normal'],Literal['antenna']] 
+Mode = Union[Literal['normal'], Literal['antenna']] 
 Basis = Union[Literal['sh'], Literal['wigner'], Literal['snf']]
 Update = Union[Literal['update_all'], Literal['fix_theta']]
 
@@ -23,7 +21,7 @@ class GradParams(TypedDict):
 
 
 def get_params_grad(max_iter: int, eps: float, update: Update, 
-                    p_norm: int, step_size: Optional[float] = None)-> GradParams:
+                    p_norm: int, step_size: Optional[float] = None) -> GradParams:
 
     return {"max_iter": max_iter, 
             "eps": eps,
@@ -42,29 +40,33 @@ class MatrixParams(TypedDict):
 
 
 def get_params_matrix(bandwidth: int, mode: Mode, basis: Basis) -> MatrixParams:
+
     """ 
     Return parameter matrix
     """
     column_dimension, col_comb = params_matrix(basis, bandwidth, mode)
-    return {"B":bandwidth, 
-            "N":column_dimension,
+    return {"B": bandwidth, 
+            "N": column_dimension,
             "types": basis,
-            "col_comb":col_comb,
+            "col_comb": col_comb,
             "case": mode
             }
 
- 
-def coherence_optimization(
+
+def coherence_optimization_grad_descent(
     bandwidth: int,
-    mode: str,
-    basis: str,
+    mode: Mode,
+    basis: Basis,
     max_iter: int,
     eps: float,
-    update: str,
+    update: Update,
     p_norm: int,
-    total_samples: int,
+    samples: list,
      ) -> dict:
+
     """
+    Coherence minimization with gradient descent method
+
     Parameters
     ----------
     total_samples
@@ -74,13 +76,15 @@ def coherence_optimization(
     mode
         Evaluate normal expansion or expansion in terms of spherical near-field antenna measurements
     basis
-        Choose basis function to construct matrix, spherical harmonics, Wigner D-functions, or spherical near-field
+        Choose basis function to construct matrix, spherical harmonics, Wigner D-functions, 
+        or spherical near-field
     max_iter
         Maximum iteration for algorithms
     eps
         The error tolerance for the algorithms
     update  
-        Evaluate update for some variables on the sphere (azimuth) or all (elevation, azimuth and polarization)
+        Evaluate update for some variables on the sphere (azimuth) or all 
+        (elevation, azimuth and polarization)
     p_norm  
         Large enough p-norm to approximate infinity norm
    
@@ -100,21 +104,16 @@ def coherence_optimization(
                                   update=update, 
                                   p_norm=p_norm)
 
-    m = np.arange(17, params_mat['N']-1, total_samples).astype(np.int64)
-
-    gd_ang_sample = []
-    alm_ang_sample = []
-
     # Allocation coherence for samples
-    alm_coh_sample = []
+    gd_ang_sample = []
     gd_coh_sample = []
 
     # Loop for samples
-    for idx in range(len(m)):
+    for idx in range(len(samples)):
         
         # Generate samples
        
-        unif_rand = UniformRandom(m=m[idx], basis=basis)
+        unif_rand = UniformRandom(m=samples[idx], basis=basis)
 
         # Gradient descent method
         gradesc = GradDescent(params_mat=params_mat, params_grad=params_grad)
@@ -130,6 +129,79 @@ def coherence_optimization(
                        
         gd_ang_sample.append(res_gradesc['angle'])
         gd_coh_sample.append(res_gradesc['coherence'])
+                 
+        print('Sample (m): ', samples[idx], ' GD ', res_gradesc['coherence'],
+              coherence(mat_gd.normA))
+        
+    total_result = {'m': samples, 'B': params_mat['B'], 'N': params_mat['N'],
+                    'gd_ang': gd_ang_sample, 'gd_coh': gd_coh_sample}
+
+    return total_result
+ 
+
+def coherence_optimization_alm(
+    bandwidth: int,
+    mode: Mode,
+    basis: Basis,
+    max_iter: int,
+    eps: float,
+    update: Update,
+    p_norm: int,
+    samples: int,
+     ) -> dict:
+    """
+    Coherence minimization with augmented Lagrangian method
+    Parameters
+    ----------
+    total_samples
+        Generate several number of samples
+    bandwidth
+        Banwidth of our expansion to determine dimension of column matrix
+    mode
+        Evaluate normal expansion or expansion in terms of spherical near-field antenna measurements
+    basis
+        Choose basis function to construct matrix, spherical harmonics, Wigner D-functions, 
+        or spherical near-field
+    max_iter
+        Maximum iteration for algorithms
+    eps
+        The error tolerance for the algorithms
+    update  
+        Evaluate update for some variables on the sphere (azimuth) or all 
+        (elevation, azimuth and polarization)
+    p_norm  
+        Large enough p-norm to approximate infinity norm
+   
+    Returns
+    -------
+    object, list_of_errors
+       
+    """
+
+    # Generate parameters
+    params_mat = get_params_matrix(bandwidth=bandwidth, 
+                                   mode=mode,
+                                   basis=basis)
+
+    params_grad = get_params_grad(max_iter=max_iter, 
+                                  eps=eps, 
+                                  update=update, 
+                                  p_norm=p_norm)
+
+    # Allocation coherence for samples
+    alm_ang_sample = []
+    alm_coh_sample = []
+ 
+    # Loop for samples
+    for idx in range(len(samples)):
+        
+        # Generate samples
+       
+        unif_rand = UniformRandom(m=samples[idx], basis=basis)
+ 
+        select_mat = {'sh': MatrixSH,
+                      'wigner': MatrixWigner,
+                      'snf': MatrixSNF}
         
         # Augmented Lagrangian method
         alm = ALM(params_mat=params_mat, params_grad=params_grad)
@@ -138,41 +210,13 @@ def coherence_optimization(
         
         mat_alm = select_mat[params_mat['types']](B=params_mat['B'], angles=res_alm['angle'],
                                                   case=params_mat['case'])
-        
-        print('Sample (m): ', m[idx], ' GD ', res_gradesc['coherence'], coherence(mat_gd.normA))
-        print('Sample (m): ', m[idx], ' ALM;', res_alm['coherence'], coherence(mat_alm.normA))
+         
+        print('Sample (m): ', samples[idx], ' ALM;', res_alm['coherence'], coherence(mat_alm.normA))
             
         alm_ang_sample.append(res_alm['angle'])
         alm_coh_sample.append(res_alm['coherence'])
         
-    total_result = {'m': m, 'B': params_mat['B'], 'N': params_mat['N'],
-                    'alm_ang': alm_ang_sample, 'alm_coh': alm_coh_sample,
-                    'gd_ang': gd_ang_sample, 'gd_coh': gd_coh_sample}
+    total_result = {'m': samples, 'B': params_mat['B'], 'N': params_mat['N'],
+                    'alm_ang': alm_ang_sample, 'alm_coh': alm_coh_sample}
 
     return total_result
-
-
-if __name__ == '__main__':
-    
-    mode = 'normal'
-    basis = 'sh'
-    max_iter = 300
-    bandwidth = 10
-    eps = 1e-6
-    update = 'fix_theta'
-    p_norm = 9
-    total_samples = 10
-    # Run algorithms
-
-    total_result = coherence_optimization(bandwidth=bandwidth, mode=mode, basis=basis,
-                                          max_iter=max_iter, eps=eps, update=update,
-                                          p_norm=p_norm, total_samples=total_samples)
-    # Path
-    folder = os.path.join('results/', mode, basis)
-    path = os.path.join(os.getcwd(), folder)
-    filename = basis + '' + mode + '' + update 
-
-    # Store Files
-    os.makedirs(path, exist_ok=True)
-    path_file = os.path.join(path, filename + '.npy')
-    np.save(path_file, total_result)
