@@ -419,7 +419,8 @@ class GradWignerSNF(Gradient):
         
         deriv_sc_chi = {'d_c2_chi': d_c2_chi, 'd_c3_chi': d_c3_chi,
                         'd_s2_chi': d_s2_chi, 'd_s3_chi': d_s3_chi}
-
+        
+        del c1,c2,c3,s1,s2,s3, d_c1, d_c2, d_c3, d_s1, d_s2, d_s3, d_c2_chi,d_c3_chi, d_s2_chi, d_s3_chi
         return deriv_sc_phi, deriv_sc_chi, comb_sine_cos
 
     def all_comb_matrix(self, comb_sine_cos, deriv_sc_chi, deriv_sc_phi):
@@ -510,6 +511,10 @@ class GradWignerSNF(Gradient):
         gr_phi_case3 = case3_real*d_case3_real_phi + case3_imag*d_case3_imag_phi
         gr_chi_case3 = case3_real*d_case3_real_chi + case3_imag*d_case3_imag_chi
 
+        del d1, d2,d3, d4, d_d1, d_d2, d_d3, d_d4, c1,c2,c3, s1,s2,s3, d_c1, d_c2,  d_c3
+        del d_s1, d_s2, d_s3 , d_c2_chi, d_c3_chi, d_s2_chi, d_s3_chi
+        del case3_real, d_case3_real_theta, d_case3_real_phi, d_case3_real_chi 
+        del case3_imag, d_case3_imag_theta, d_case3_imag_phi, d_case3_imag_chi 
         return gr_theta_case3, gr_phi_case3, gr_chi_case3
 
     def comb_neg(self, comb_sine_cos, deriv_sc_phi, deriv_sc_chi):
@@ -617,6 +622,10 @@ class GradWignerSNF(Gradient):
         gr_phi_case2   = case2_real*d_case2_real_phi + case2_imag*d_case2_imag_phi
         gr_chi_case2   = case2_real*d_case2_real_chi + case2_imag*d_case2_imag_chi 
 
+        del d1, d2,d3, d4, d_d1, d_d2, d_d3, d_d4, c1,c2,c3, s1,s2,s3, d_c1, d_c2,  d_c3
+        del d_s1, d_s2, d_s3 , d_c2_chi, d_c3_chi, d_s2_chi, d_s3_chi
+        del case2_real, d_case2_real_theta, d_case2_real_phi, d_case2_real_chi 
+        del case2_imag, d_case2_imag_theta, d_case2_imag_phi, d_case2_imag_chi 
         return gr_theta_case2, gr_phi_case2, gr_chi_case2
 
     def comb_pos(self, comb_sine_cos, deriv_sc_phi, deriv_sc_chi):
@@ -731,6 +740,10 @@ class GradWignerSNF(Gradient):
         gr_phi_case1   = case1_real*d_case1_real_phi + case1_imag*d_case1_imag_phi
         gr_chi_case1   = case1_real*d_case1_real_chi + case1_imag*d_case1_imag_chi
 
+        del d1, d2,d3, d4, d_d1, d_d2, d_d3, d_d4, c1,c2,c3, s1,s2,s3, d_c1, d_c2,  d_c3
+        del d_s1, d_s2, d_s3 , d_c2_chi, d_c3_chi, d_s2_chi, d_s3_chi
+        del case1_real, d_case1_real_theta, d_case1_real_phi, d_case1_real_chi 
+        del case1_imag, d_case1_imag_theta, d_case1_imag_phi, d_case1_imag_chi 
         return gr_theta_case1, gr_phi_case1, gr_chi_case1
 
 
@@ -757,6 +770,9 @@ class GradWignerSNF(Gradient):
         gr_chi = (np.concatenate((gr_chi_case1,
                                         gr_chi_case3,
                                         gr_chi_case2), axis = 1))
+
+        del deriv_sc_phi, deriv_sc_chi, comb_sine_cos, gr_theta_case3, gr_phi_case3, gr_chi_case3 
+        del gr_theta_case2, gr_phi_case2, gr_chi_case2, gr_theta_case1, gr_phi_case1, gr_chi_case1 
         
         return gr_theta, gr_phi, gr_chi
            
@@ -772,6 +788,7 @@ class GradWignerSNF(Gradient):
         gr_chi_pnorm   = Qnorm1*np.sum(Qnorm[np.newaxis, :]*gr_chi, 1)
 
 
+        del Qnorm, Qnorm1
         return {'theta': gr_theta_pnorm,
                 'phi': gr_phi_pnorm,
                 'chi': gr_chi_pnorm,

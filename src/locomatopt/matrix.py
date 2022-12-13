@@ -20,7 +20,7 @@ class Matrix:
         
   
     """
-    def __init__(self, B, angles, case, complex_dtype=np.complex128, float_dtype=np.float64):
+    def __init__(self, B, angles, case, complex_dtype=np.complex64, float_dtype=np.float32):
         self.B = B
         self.angles = angles
         self.m = len(angles['theta'])
@@ -71,7 +71,7 @@ class MatrixSH(Matrix):
         harmonics
         '''
         self.N = self.B**2
-        lk = np.zeros((self.N, 2), dtype=self.float_dtype)
+        lk = np.zeros((self.N, 2), dtype=np.int64)
         idx_beg = 0
         for l_deg in range(self.B):
             k = range(-l_deg, l_deg+1)
@@ -182,7 +182,6 @@ class MatrixSH(Matrix):
             self.N = self.N - 1
             self.deg_order = self.deg_order[1::, :]
         
-      
 class MatrixWigner(Matrix):
     
     """ 
@@ -217,7 +216,7 @@ class MatrixWigner(Matrix):
         '''
         
         self.N = self.B*(2*self.B-1)*(2*self.B+1)//3
-        lkn = np.zeros((self.N, 3), dtype=self.float_dtype)
+        lkn = np.zeros((self.N, 3), dtype=np.int64)
         idx_beg = 0
         for l_deg in range(self.B):
             n = range(-l_deg, l_deg + 1)
@@ -244,7 +243,7 @@ class MatrixWigner(Matrix):
         if self.deg_order[ii, 2] >= self.deg_order[ii, 1]:
             eta = 1
         else:
-            eta = (-1)**(self.deg_order[ii, 2] - self.deg_order[ii, 1])
+            eta = np.float_power(-1, self.deg_order[ii, 2] - self.deg_order[ii, 1])
 
         # Set Normalization (SO(3) normalization)
         normalization = np.sqrt((2.0*self.deg_order[ii, 0]+1)/(8.0*np.pi**2))
@@ -397,7 +396,7 @@ class MatrixSNF(Matrix):
         spherical near-field measurements (SNF)
         '''
         self.N = 2*self.B**2 + 4*self.B
-        lk = np.zeros((self.N//2,2), dtype=self.float_dtype)
+        lk = np.zeros((self.N//2,2), dtype=np.int64)
         idx_beg = 0
         for l in np.arange(1,self.B + 1):
             k = range(-l,l+1)
@@ -424,13 +423,14 @@ class MatrixSNF(Matrix):
         if mu >= self.deg_order[ii,1]:
             eta = 1
         else:
-            eta = (-1)**(mu - self.deg_order[ii,1])
-        
+            
+            eta = (-1)**(mu - self.deg_order[ii,1]).astype(float)
+  
         ## Set Wigner d for positive
         self.mu_sign = np.abs(self.deg_order[ii,1] - mu)
         self.vu_sign = np.abs(self.deg_order[ii,1] + mu)
-        self.s_sign = self.deg_order[ii,0] - (self.mu_sign + self.vu_sign)/2.0
-        
+        self.s_sign = self.deg_order[ii,0] - (self.mu_sign + self.vu_sign)//2
+         
         norm_gamma = np.sqrt((math.factorial(self.s_sign)*math.factorial(self.s_sign + self.mu_sign + self.vu_sign))/
                              (math.factorial(self.s_sign + self.mu_sign)*(math.factorial(self.s_sign + self.vu_sign))))
             
@@ -579,11 +579,13 @@ class MatrixSNF(Matrix):
                                                        
         self.d_dmm_min1 = d_dmm_min1  
         self.d_dmm_min2 = d_dmm_min2
-                              
+        self.dmm_plus = dmm_plus
+        self.dmm_min = dmm_min
         self.dmm_plus1 = dmm_plus1
         self.dmm_plus2 = dmm_plus2
                                                        
         self.dmm_min1 = dmm_min1
         self.dmm_min2 = dmm_min2
-        
+        self.norm_Basis_1 = norm_Basis_1
+        self.norm_Basis_2 = norm_Basis_2
        

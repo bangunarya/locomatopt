@@ -188,7 +188,7 @@ class GradDescent(BaseAlgo):
         
         while (iterate < self.params_grad['max_iter'] and 
                np.abs(coh - lower_bound) > self.params_grad['eps']):
-            
+            print('Iteration ', iterate, 'Coherence ', coh)
             # Add iteration
             iterate += 1
             
